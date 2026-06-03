@@ -1,0 +1,11 @@
+{
+  "experiment_id": "_template",
+  "description": "Template folder showing the MVP experiment input/output layout.",
+  "input_sources": [
+    "camera",
+    "microphone",
+    "cpu_jitter",
+    "scheduler_jitter"
+  ],
+  "output_index": "output/run_index.csv"
+}

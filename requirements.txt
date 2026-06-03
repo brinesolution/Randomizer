@@ -1,1 +1,3 @@
-# Populate as implementation begins.
+streamlit
+pandas
+pyyaml

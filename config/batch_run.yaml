@@ -1,0 +1,9 @@
+mode: batch
+experiment:
+  base_dir: data/experiments
+  save_source_inputs: true
+  save_output_index: true
+batch:
+  runs: 10000
+  stop_on_source_failure: false
+  flush_every_runs: 1

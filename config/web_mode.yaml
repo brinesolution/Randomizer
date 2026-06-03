@@ -1,0 +1,9 @@
+mode: web
+experiment:
+  base_dir: data/experiments
+  save_source_inputs: true
+  save_output_index: true
+ui:
+  show_source_inputs: true
+  show_pipeline_trace: true
+  show_otp_result: true
