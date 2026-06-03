@@ -16,8 +16,8 @@ COMPLETION BOOKMARKS
 [DONE] Stage 0 - Project hygiene and install check
 [DONE] Stage 1 - Core contracts, models, config, and utilities
 [DONE] Stage 2 - Entropy source interface and raw source collectors
-[ 40% ] Stage 3 - Feature extraction and source health gate
-[ 55% ] Stage 4 - Hashing, fusion, conditioning, and OTP generation
+[DONE] Stage 3 - Feature extraction and source health gate
+[DONE] Stage 4 - Hashing, fusion, conditioning, and OTP generation
 [ 70% ] Stage 5 - Experiment storage input/output contract
 [ 80% ] Stage 6 - Entropy manager and batch mode
 [ 88% ] Stage 7 - CLI commands and terminal scripts
@@ -442,6 +442,31 @@ Tests/checks:
 Done when:
 All-zero and constant data fail. Reasonable random-like test bytes pass.
 
+Stage 3 work log:
+- Wrote tests/unit/test_feature_extraction.py for byte count, bit balance, unique byte count, Shannon entropy, lag-1 autocorrelation, and metadata passthrough.
+  Why:
+  feature extraction is the first pipeline step after raw source collection and needs stable behavior before health checks.
+- Wrote tests/unit/test_health_tests.py for empty data, all-zero data, constant data, random-like data, and degraded run status decisions.
+  Why:
+  the pipeline must reject broken source bytes before any OTP generation logic is added.
+- Implemented src/randomiser/pipeline/features.py.
+  Why:
+  later hashing and web trace stages need consistent source metrics from SourceSample objects.
+- Implemented src/randomiser/pipeline/health_tests.py and health_gate.py.
+  Why:
+  source health should be evaluated in one reusable place for CLI, batch, and web modes.
+- Implemented src/randomiser/pipeline/degraded_mode.py.
+  Why:
+  later runs need a clear ok/degraded/failed decision when one or more enabled sources fail.
+- Updated src/randomiser/pipeline/__init__.py with stable Stage 3 exports.
+  Why:
+  later stages should import the public pipeline functions without reaching into implementation details.
+
+Stage 3 verification:
+- pytest tests/unit/test_feature_extraction.py -q -> PASS
+- pytest tests/unit/test_health_tests.py -q -> PASS
+- pytest -q -> PASS
+
 
 ======================================================================
 STAGE 4 - HASHING, FUSION, CONDITIONING, AND OTP GENERATION - 55% TO 70%
@@ -485,6 +510,42 @@ Tests/checks:
 
 Done when:
 OTP is always 6 digits. Leading zeros are preserved. Changing source input changes fused digest.
+
+Stage 4 work log:
+- Wrote tests/unit/test_hg_msef.py for source hashing, stable source-name sorting, pass/warn source inclusion, fail source exclusion, and changed-input digest changes.
+  Why:
+  fusion must be deterministic and must only use sources accepted by the health gate.
+- Wrote tests/unit/test_conditioner.py for final digest stability and context sensitivity.
+  Why:
+  OTP generation needs one final conditioning step after source fusion.
+- Wrote tests/unit/test_rejection_sampling.py for bounded integer output, rejected chunk handling, and invalid bound rejection.
+  Why:
+  OTP integers must be selected without simple modulo bias.
+- Wrote tests/unit/test_otp_generator.py for six-digit formatting, leading zero preservation, and range validation.
+  Why:
+  the final OTP display contract must be exact before storage and CLI are added.
+- Implemented src/randomiser/pipeline/source_hasher.py.
+  Why:
+  each source needs an independent digest using source name, run_id, raw bytes, and metadata digest.
+- Implemented src/randomiser/pipeline/hg_msef.py.
+  Why:
+  healthy source digests need one stable fusion point for batch, CLI, and web modes.
+- Implemented src/randomiser/pipeline/conditioner.py.
+  Why:
+  fused bytes need final SHA-512 conditioning before rejection sampling.
+- Implemented src/randomiser/pipeline/rejection_sampling.py and otp_generator.py.
+  Why:
+  the project needs unbiased integer selection and exact six-digit OTP formatting.
+- Updated src/randomiser/pipeline/__init__.py with stable Stage 4 exports.
+  Why:
+  later manager and mode stages should call public pipeline functions directly.
+
+Stage 4 verification:
+- pytest tests/unit/test_hg_msef.py -q -> PASS
+- pytest tests/unit/test_conditioner.py -q -> PASS
+- pytest tests/unit/test_rejection_sampling.py -q -> PASS
+- pytest tests/unit/test_otp_generator.py -q -> PASS
+- pytest -q -> PASS
 
 
 ======================================================================
