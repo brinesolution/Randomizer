@@ -1,1 +1,1 @@
-"""UI component placeholder for pipeline transformation steps."""
+"""Reserved pipeline step module for future Python web adapters."""

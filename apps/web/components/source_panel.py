@@ -1,1 +1,1 @@
-"""UI component placeholder for source input summaries."""
+"""Reserved source panel module for future Python web adapters."""

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Randomiser Flow</title>
+    <link rel="stylesheet" href="/static/css/app.css" />
+    <script type="module" src="/static/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to flow</a>
+    <div class="noise" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="#main">RANDOMISER</a>
+      <nav aria-label="Page">
+        <a href="#sources">Sources</a>
+        <a href="#health">Health</a>
+        <a href="#pipeline">Pipeline</a>
+        <a href="#otp">OTP</a>
+      </nav>
+      <span id="statusBadge" class="status-badge idle">Idle</span>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="heroTitle">
+        <p class="microcopy">Laptop source flow / web mode</p>
+        <h1 id="heroTitle">RANDOMISER<br />FLOW</h1>
+        <div class="hero-grid">
+          <p class="hero-copy">
+            Press start to request camera, microphone, CPU jitter, and scheduler jitter. The page then shows raw source capture, health checks, hashing, fusion, conditioning, rejection sampling, and the final six digit OTP.
+          </p>
+          <button id="startButton" class="primary-action" type="button">
+            Start Source Run
+          </button>
+        </div>
+      </section>
+
+      <section class="marquee-band accent" aria-label="Flow stages">
+        <div class="marquee-track">
+          <span>REQUEST SOURCES</span>
+          <span>COLLECT BYTES</span>
+          <span>CHECK HEALTH</span>
+          <span>HASH SOURCES</span>
+          <span>FUSE DIGESTS</span>
+          <span>SHOW OTP</span>
+          <span aria-hidden="true">REQUEST SOURCES</span>
+          <span aria-hidden="true">COLLECT BYTES</span>
+          <span aria-hidden="true">CHECK HEALTH</span>
+          <span aria-hidden="true">HASH SOURCES</span>
+          <span aria-hidden="true">FUSE DIGESTS</span>
+          <span aria-hidden="true">SHOW OTP</span>
+        </div>
+      </section>
+
+      <section id="sources" class="section-block">
+        <div class="section-heading">
+          <span class="huge-number" aria-hidden="true">01</span>
+          <div>
+            <p class="microcopy">Requested source set</p>
+            <h2>Sources</h2>
+          </div>
+        </div>
+        <div id="requestGrid" class="request-grid" aria-live="polite">
+          <article class="request-card" data-source="camera">
+            <span>CAMERA</span>
+            <strong>Waiting</strong>
+          </article>
+          <article class="request-card" data-source="microphone">
+            <span>MICROPHONE</span>
+            <strong>Waiting</strong>
+          </article>
+          <article class="request-card" data-source="cpu_jitter">
+            <span>CPU JITTER</span>
+            <strong>Waiting</strong>
+          </article>
+          <article class="request-card" data-source="scheduler_jitter">
+            <span>SCHEDULER JITTER</span>
+            <strong>Waiting</strong>
+          </article>
+        </div>
+      </section>
+
+      <section id="health" class="section-block">
+        <div class="section-heading">
+          <span class="huge-number" aria-hidden="true">02</span>
+          <div>
+            <p class="microcopy">Stage 3 metrics</p>
+            <h2>Health Checks</h2>
+          </div>
+        </div>
+        <div id="sourceGrid" class="source-grid empty-state">
+          <p>Run the flow to see byte counts, balance, entropy, autocorrelation, checks, and saved input paths.</p>
+        </div>
+      </section>
+
+      <section class="marquee-band dark" aria-label="Saved experiment contract">
+        <div class="marquee-track slow">
+          <span>ONE RUN ID</span>
+          <span>FOUR INPUT FOLDERS</span>
+          <span>ONE OUTPUT CSV</span>
+          <span>STRUCTURED EXPERIMENT DATA</span>
+          <span aria-hidden="true">ONE RUN ID</span>
+          <span aria-hidden="true">FOUR INPUT FOLDERS</span>
+          <span aria-hidden="true">ONE OUTPUT CSV</span>
+          <span aria-hidden="true">STRUCTURED EXPERIMENT DATA</span>
+        </div>
+      </section>
+
+      <section id="pipeline" class="section-block">
+        <div class="section-heading">
+          <span class="huge-number" aria-hidden="true">03</span>
+          <div>
+            <p class="microcopy">Stage 4 transformation</p>
+            <h2>Flow Tree</h2>
+          </div>
+        </div>
+        <div id="traceList" class="trace-list empty-state">
+          <p>The flow tree appears after a source run completes.</p>
+        </div>
+      </section>
+
+      <section id="otp" class="otp-section">
+        <div>
+          <p class="microcopy">Final output</p>
+          <h2>Generated OTP</h2>
+        </div>
+        <output id="otpValue" class="otp-value" aria-live="polite">------</output>
+        <div id="savePanel" class="save-panel">
+          <p>Experiment path and CSV output appear here after the run is saved.</p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

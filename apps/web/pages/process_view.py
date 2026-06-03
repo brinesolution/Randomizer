@@ -1,1 +1,1 @@
-"""Process visualization page for source collection, transformation, and OTP output."""
+"""Reserved process view module for future Python web adapters."""

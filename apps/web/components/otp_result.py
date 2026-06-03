@@ -1,1 +1,1 @@
-"""UI component placeholder for displaying the generated OTP."""
+"""Reserved OTP result module for future Python web adapters."""

@@ -1,1 +1,1 @@
-"""Experiment history page for inspecting saved web and batch runs."""
+"""Reserved experiment history module for future Python web adapters."""
