@@ -1,0 +1,2293 @@
+Generated on: 2026-06-02T20:42:54.341296
+Author context: ManniAndBinni project planning conversation
+
+# MULTI-SOURCE ENTROPY OTP GENERATOR PROJECT - FULL AGENT SPECIFICATION
+
+Document purpose:
+This TXT document is intended for an AI coding agent such as Claude, Codex, Cursor, or any other software-building agent. It captures the complete project vision discussed so far, including accepted ideas, rejected ideas, architecture decisions, planned modules, source handling, OTP generation method, dataset generation, statistical testing, ML attack/evaluation phase, folder structure, implementation roadmap, resume positioning, future expansions, and additional engineering suggestions.
+
+Project working title:
+Multi-Source Entropy-Based OTP Generator with Statistical and ML-Based Randomness Evaluation
+
+Alternative titles:
+1. Multi-Source Hardware-Derived Entropy OTP Generator
+2. Laptop-Only Entropy Fusion Engine for OTP Generation
+3. Health-Gated Multi-Source Entropy Fusion for Random Number and OTP Generation
+4. EntropyLab: Multi-Source Randomness Collection, OTP Generation, and Predictability Testing
+5. Randomiser: Laptop-Only Multi-Source Entropy Fusion and ML Attack Evaluation
+
+Recommended final repo name:
+entropy-otp-generator
+or
+randomiser-entropy-lab
+or
+multi-source-entropy-otp
+
+Primary language preference:
+Python-first.
+
+Secondary languages:
+C/C++ only if later hardware or low-level performance extensions are added. Base project should be Python-only.
+
+Core project identity:
+This project is not just a random number generator. It is a complete entropy collection, source validation, randomness conditioning, OTP generation, dataset logging, and predictability evaluation platform.
+
+Best one-line description:
+Built a Python-based multi-source entropy OTP generator that collects laptop hardware-derived noise from camera, microphone, CPU timing jitter, and OS scheduler jitter, fuses them using a health-gated hash-based mixer, generates unbiased 6-digit OTPs, logs 10,000+ runs, and evaluates output predictability using statistical tests and ML attack models.
+
+================================================================================
+1. PROJECT MOTIVATION
+================================================================================
+
+Problem:
+Computers are deterministic. Pure software cannot generate truly random numbers from nothing. Normal pseudo-random number generators produce sequences from algorithms and seeds. If the seed and internal state are known, future outputs may be predictable. In security-sensitive systems, weak randomness can cause severe vulnerabilities such as predictable OTPs, weak session tokens, poor cryptographic keys, and authentication failures.
+
+Project motivation:
+The aim is to study randomness as a real engineering pipeline:
+1. collect noisy physical or hardware-derived signals,
+2. extract entropy-like raw bytes,
+3. test whether sources look healthy,
+4. fuse several independent-ish sources,
+5. condition the fused entropy using standard cryptographic hash functions,
+6. generate a clean 6-digit OTP using unbiased mapping,
+7. log all runs with source metrics,
+8. build a dataset,
+9. use statistical tests and ML models to attempt prediction,
+10. evaluate whether the OTP generator is weak, biased, or hard to predict.
+
+Important framing:
+Do not claim this is a certified cryptographic TRNG. It is a research/portfolio prototype for entropy collection and evaluation.
+
+Correct framing:
+"A laptop-only multi-source entropy fusion system that collects hardware-derived noise signals, conditions them, generates 6-digit OTPs, and evaluates predictability statistically and using ML."
+
+Incorrect framing:
+"I invented a perfect true random number generator."
+"This replaces Google Authenticator or bank OTP systems."
+"This is guaranteed cryptographically secure."
+
+Portfolio reason:
+This project combines:
+- Python systems programming,
+- sensor data collection,
+- multiprocessing/parallel collection,
+- cryptographic hashing,
+- OTP generation,
+- statistics,
+- dataset engineering,
+- ML model evaluation,
+- security mindset,
+- dashboard/API/CLI development,
+- documentation.
+
+================================================================================
+2. MAJOR CONCEPTS DISCUSSED
+================================================================================
+
+2.1 Why computers cannot generate true randomness using pure software
+
+Pure software is deterministic:
+Input + instructions + state = output.
+If all inputs and state are repeated, the result repeats.
+This is why normal software random number generators are pseudo-random.
+
+True randomness requires a physical entropy source, such as electrical noise, radioactive decay, sensor noise, thermal noise, quantum effects, camera noise, microphone ADC noise, or timing jitter.
+
+2.2 Hardware-assisted randomness
+
+A stronger system collects noise from real physical processes, such as:
+- diode electrical noise,
+- camera sensor dark-frame noise,
+- microphone analog-to-digital noise,
+- CPU timing jitter,
+- OS scheduler jitter,
+- human input timing,
+- external sensor fluctuations.
+
+For this project, the user currently wants a laptop-only prototype, so no diode hardware in the base implementation.
+
+2.3 Laptop-only entropy sources selected
+
+Accepted laptop-only entropy sources:
+1. Camera dark-frame noise
+2. Microphone ADC noise
+3. CPU timing jitter
+4. OS scheduler/thread timing jitter
+
+Rejected for base project:
+1. Mouse/touchpad/keyboard timing, because it requires human intervention and the user wants automated 10,000-run generation.
+2. Direct laptop motherboard electrical noise, because normal software cannot directly access raw analog electrical noise from the motherboard.
+3. Diode electrical noise in base project, because the current base project should be laptop-only. It remains a future extension.
+4. OS randomness as the core entropy source, because that would mostly be calling the operating system's existing RNG rather than building our own entropy pipeline. It can be used as a baseline comparison only.
+5. Network timing as a core source, because it depends on router/internet conditions and is not reliable offline.
+6. Battery/temperature sensors as core sources, because they are often slow, low-resolution, and not sufficiently variable.
+7. Disk I/O timing as a core source, because it can be affected by caching and may create unnecessary SSD wear if used aggressively. It can be optional/future.
+
+2.4 OTP generation concept
+
+The user initially proposed:
+- generate random outputs multiple times,
+- one run gives 3 digits, another gives 2 digits, another gives 1 digit,
+- concatenate chunks until a 6-digit OTP is produced.
+
+Rejected as primary method:
+Variable-length digit stitching can introduce bias or uneven digit distribution unless handled very carefully.
+
+Accepted method:
+Generate one uniform integer in range 0 to 999999 and format it as a 6-digit OTP with leading zeros.
+
+Example:
+42 -> 000042
+9182 -> 009182
+762341 -> 762341
+
+Recommended method:
+Use rejection sampling from a hash digest / generated random block to avoid modulo bias.
+
+2.5 ML evaluation concept
+
+Stage 2 of the project should try to break the generator.
+The user wants to generate 10,000 OTP samples and use ML/statistical models to see if the OTP can be predicted from source metrics, previous OTPs, timestamps, or experimental values.
+
+Accepted ML goals:
+1. Predict each OTP digit individually.
+2. Predict next OTP digit from previous OTP sequence and features.
+3. Predict OTP bucket/range.
+4. Detect correlations between source features and output digits.
+5. Compare ML accuracy to random baseline.
+6. Run anomaly detection for source health.
+
+Rejected or deprioritized ML goal:
+Predict full 6-digit OTP as a 1,000,000-class classification problem using only 10,000 samples. This is not useful as a main task because the output space is much larger than the dataset. It can be included as a sanity check only.
+
+================================================================================
+3. BASE PROJECT SCOPE
+================================================================================
+
+The base project should include:
+
+1. Four laptop-only entropy sources:
+   - camera dark-frame noise,
+   - microphone ADC noise,
+   - CPU timing jitter,
+   - OS scheduler/thread timing jitter.
+
+2. Independent source modules:
+   Each source must be implemented in its own file/class with a standard interface.
+
+3. Parallel/decentralized collection:
+   Sources should be collected concurrently where possible. The central manager should call each source independently and gather raw blocks.
+
+4. Health tests:
+   Before mixing, each source should be checked for basic failure or bad quality.
+
+5. Source-level feature extraction:
+   Store metrics per source:
+   - byte count,
+   - bit balance,
+   - entropy estimate,
+   - mean/std for timing sources,
+   - autocorrelation estimate,
+   - health pass/fail,
+   - collection time.
+
+6. Multi-source fusion algorithm:
+   Recommended named algorithm:
+   HG-MSEF = Health-Gated Multi-Source Entropy Fusion.
+
+7. Cryptographic conditioning:
+   Use SHA-512 or BLAKE2b from Python hashlib.
+   Do not invent a new cryptographic hash function.
+
+8. OTP generation:
+   Generate one uniform integer in [0, 999999] using rejection sampling.
+   Format as 6 digits with leading zeros.
+
+9. Dataset logging:
+   Log every run into CSV/Parquet/JSONL.
+   Keep public metadata separate from private raw entropy data.
+
+10. Automated generation:
+   Run at least 10,000 times.
+
+11. Statistical analysis:
+   Analyze digit frequency, OTP distribution, collision count, autocorrelation, entropy estimates, chi-square tests, and source-output correlation.
+
+12. ML attack phase:
+   Train models to predict digits or next digits and compare accuracy to random baseline.
+
+13. Documentation:
+   README, architecture diagram, algorithm documentation, limitations, experiment report.
+
+================================================================================
+4. ACCEPTED ENTROPY SOURCES FOR BASE PROJECT
+================================================================================
+
+Source 1: Camera dark-frame noise
+Formal name:
+Optical Sensor Dark-Frame Noise Source
+
+Purpose:
+Collect physical/electronic noise from the laptop webcam sensor.
+
+Method:
+1. Use OpenCV to access webcam.
+2. Ask user to cover camera physically before running long experiments.
+3. Capture one or more frames per OTP generation run.
+4. Convert frame to grayscale.
+5. Extract least significant bits from pixel values.
+6. Optionally compute frame differences between consecutive frames.
+7. Convert extracted LSBs / deltas to raw bytes.
+8. Hash source block before mixing.
+
+Notes:
+- Camera noise depends on exposure, lighting, resolution, sensor behavior, compression, driver settings.
+- Fixed settings improve reproducibility.
+- If auto-exposure changes too much, source behavior may change.
+- Store camera metadata: frame size, mean pixel value, std pixel value, LSB balance.
+
+Possible OpenCV package:
+opencv-python
+
+Source 2: Microphone ADC noise
+Formal name:
+Audio ADC Noise Source
+
+Purpose:
+Collect analog-to-digital noise from microphone input and background signal variations.
+
+Method:
+1. Use sounddevice or PyAudio to record a short audio block.
+2. Prefer quiet environment.
+3. Disable noise suppression if possible, but this may not be easy through Python.
+4. Extract low-order bits from PCM samples.
+5. Use sample deltas or LSBs as raw noise bytes.
+6. Run health tests to detect muted/constant microphone.
+
+Notes:
+- External sound can influence microphone data.
+- Microphone can be muted, permission-blocked, or processed by OS noise cancellation.
+- It is useful but should not be trusted alone.
+
+Possible Python packages:
+sounddevice
+numpy
+
+Source 3: CPU timing jitter
+Formal name:
+Processor Timing Jitter Source
+
+Purpose:
+Collect timing variability from repeated CPU operations.
+
+Method:
+1. Use time.perf_counter_ns() for high-resolution timing.
+2. Run small deterministic CPU operations repeatedly.
+3. Measure delta times between iterations.
+4. Extract low-order bits of timing deltas.
+5. Hash result before mixing.
+
+Notes:
+- Python is not ideal for ultra-low-level timing, but sufficient for experimental project.
+- Source may be affected by CPU load, power settings, background processes, interpreter overhead, OS scheduling.
+- This source is still useful for a laptop-only prototype.
+
+Source 4: OS scheduler/thread timing jitter
+Formal name:
+OS Scheduler and Thread Timing Jitter Source
+
+Purpose:
+Collect timing variation caused by scheduling, context switching, interrupts, background system activity, and thread yield behavior.
+
+Method:
+1. Use several worker threads.
+2. Each worker records perf_counter_ns() deltas.
+3. Each worker calls time.sleep(0) or performs small yields.
+4. Collect low-order timing delta bits.
+5. Hash result before mixing.
+
+Notes:
+- Similar to CPU jitter but conceptually distinct: this source focuses on OS scheduling behavior, thread timing, and context switches.
+- Fully automated and suitable for 10,000-run generation.
+
+================================================================================
+5. REJECTED / DEFERRED SOURCES AND WHY
+================================================================================
+
+Rejected for base project: Mouse/touchpad/keyboard timing
+Reason:
+Requires human input. Not suitable for automated 10,000-run dataset generation.
+Future use:
+Could be added as an optional interactive entropy source for manual demo mode.
+
+Rejected for base project: Diode electrical noise
+Reason:
+Requires external hardware. User currently wants laptop-only version.
+Future use:
+Strong future upgrade. Add Arduino/Pico/ESP32 + diode noise circuit and compare laptop-only vs diode-assisted entropy.
+
+Rejected for base project: Direct laptop electrical noise measurement
+Reason:
+Normal software cannot directly access analog motherboard electrical noise.
+Future use:
+Would require external ADC, oscilloscope, microcontroller, or custom hardware taps. Not feasible safely/software-only.
+
+Rejected as main source: OS randomness / Python secrets / os.urandom
+Reason:
+Using it as the source would reduce the project to calling the existing OS RNG. It is good as a baseline comparison only.
+Usage:
+Include as baseline in experiments:
+- compare digit distribution,
+- compare generation speed,
+- compare ML predictability.
+
+Rejected as core source: Network timing
+Reason:
+Depends on internet/router/server conditions. Not reproducible. Not ideal offline.
+Future use:
+Optional environmental entropy source in advanced version.
+
+Rejected as core source: Battery/temperature sensor readings
+Reason:
+Low resolution, slow, often inaccessible or too stable.
+Future use:
+Optional metadata feature, not entropy source.
+
+Rejected as core source: Disk I/O timing
+Reason:
+Affected by caching and can create unnecessary disk writes. Reads may be too deterministic. SSD wear concerns if abused.
+Future use:
+Optional fifth automated source using memory-mapped temp files or read timing only, with care.
+
+Rejected method: Variable-length OTP chunk stitching
+Reason:
+Can introduce bias and complicates correctness.
+Accepted alternative:
+Generate full OTP using uniform integer mapping from conditioned random block.
+
+Rejected method: Output raw sensor bits directly
+Reason:
+Raw noise may be biased, correlated, or source-dependent.
+Accepted alternative:
+Health test raw bits, then cryptographically condition with SHA-512/BLAKE2b.
+
+Rejected method: Simple modulo only
+Reason:
+Modulo reduction can introduce tiny bias if source range is not a multiple of 1,000,000.
+Accepted alternative:
+Use rejection sampling. For prototype modulo from 512-bit digest has negligible practical bias, but rejection sampling is cleaner and more defensible.
+
+Rejected claim: Certified true random generator
+Reason:
+No formal certification or deep entropy-source validation.
+Accepted claim:
+Laptop-only hardware-derived entropy OTP generator with statistical and ML-based evaluation.
+
+================================================================================
+6. MODERN DECENTRALIZED ARCHITECTURE
+================================================================================
+
+Design principle:
+Each source should work independently in its own module. A central orchestrator/manager calls all sources, preferably in parallel, collects raw blocks and metrics, and sends them to the health gate, mixer, OTP generator, and logger.
+
+Architecture style:
+- Source modules are decentralized.
+- Manager is centralized only for orchestration.
+- Fusion algorithm is separate.
+- Health tests are separate.
+- Data logging is separate.
+- ML and analysis are separate from production generation.
+
+High-level pipeline:
+
+[Source Workers]
+   camera_source.py
+   microphone_source.py
+   cpu_jitter_source.py
+   scheduler_jitter_source.py
+        ↓
+[Entropy Manager]
+   entropy_manager.py
+        ↓
+[Health Gate]
+   health_tests.py
+        ↓
+[Feature Extractor]
+   features.py
+        ↓
+[Source Hasher]
+   source_hasher.py
+        ↓
+[Multi-Source Fusion]
+   hg_msef.py
+        ↓
+[Conditioner]
+   conditioner.py
+        ↓
+[OTP Generator]
+   otp.py
+        ↓
+[Experiment Logger]
+   run_logger.py
+        ↓
+[Dataset + Analysis + ML Attack]
+
+Concurrency model options:
+
+Option A: ThreadPoolExecutor
+Good for camera/mic/timing sources. Simpler than async for mixed blocking libraries.
+
+Option B: multiprocessing
+Useful if CPU jitter/scheduler jitter should avoid GIL interference, but adds complexity.
+
+Option C: asyncio
+Useful for API service, not necessarily for camera/audio capture.
+
+Recommended for MVP:
+Use concurrent.futures.ThreadPoolExecutor for source collection.
+
+Recommended for advanced version:
+Use a hybrid:
+- ThreadPoolExecutor for camera/audio/scheduler collection,
+- optional multiprocessing for timing-sensitive jitter collection,
+- FastAPI async endpoints for API service.
+
+================================================================================
+7. RECOMMENDED FILE STRUCTURE
+================================================================================
+
+Use a modern Python package structure with separated app, core, sources, analysis, and experiments.
+
+Recommended final structure:
+
+entropy-otp-generator/
+│
+├── README.md
+├── LICENSE
+├── pyproject.toml
+├── requirements.txt
+├── .gitignore
+├── .env.example
+├── config/
+│   ├── default.yaml
+│   ├── laptop_mvp.yaml
+│   ├── camera_only.yaml
+│   ├── all_sources.yaml
+│   ├── failure_mic_muted.yaml
+│   └── ml_attack.yaml
+│
+├── docs/
+│   ├── project_overview.md
+│   ├── architecture.md
+│   ├── algorithm_hg_msef.md
+│   ├── entropy_sources.md
+│   ├── otp_generation.md
+│   ├── dataset_schema.md
+│   ├── threat_model.md
+│   ├── limitations.md
+│   ├── interview_pitch.md
+│   ├── future_expansions.md
+│   └── rejected_ideas.md
+│
+├── src/
+│   └── randomiser/
+│       ├── __init__.py
+│       │
+│       ├── main.py
+│       ├── cli.py
+│       │
+│       ├── core/
+│       │   ├── __init__.py
+│       │   ├── models.py
+│       │   ├── config_loader.py
+│       │   ├── constants.py
+│       │   ├── exceptions.py
+│       │   └── utils.py
+│       │
+│       ├── sources/
+│       │   ├── __init__.py
+│       │   ├── base.py
+│       │   ├── camera_source.py
+│       │   ├── microphone_source.py
+│       │   ├── cpu_jitter_source.py
+│       │   ├── scheduler_jitter_source.py
+│       │   ├── os_random_baseline.py
+│       │   └── registry.py
+│       │
+│       ├── manager/
+│       │   ├── __init__.py
+│       │   ├── entropy_manager.py
+│       │   ├── parallel_collector.py
+│       │   ├── source_scheduler.py
+│       │   └── run_context.py
+│       │
+│       ├── health/
+│       │   ├── __init__.py
+│       │   ├── health_tests.py
+│       │   ├── repetition_test.py
+│       │   ├── frequency_test.py
+│       │   ├── runs_test.py
+│       │   ├── autocorrelation_test.py
+│       │   └── source_health_score.py
+│       │
+│       ├── features/
+│       │   ├── __init__.py
+│       │   ├── bit_features.py
+│       │   ├── timing_features.py
+│       │   ├── audio_features.py
+│       │   ├── camera_features.py
+│       │   └── feature_extractor.py
+│       │
+│       ├── fusion/
+│       │   ├── __init__.py
+│       │   ├── source_hasher.py
+│       │   ├── hg_msef.py
+│       │   ├── xor_mixer.py
+│       │   ├── concat_hash_mixer.py
+│       │   ├── mixer_registry.py
+│       │   └── conditioner.py
+│       │
+│       ├── otp/
+│       │   ├── __init__.py
+│       │   ├── rejection_sampling.py
+│       │   ├── otp_generator.py
+│       │   └── formatters.py
+│       │
+│       ├── logging_pipeline/
+│       │   ├── __init__.py
+│       │   ├── run_logger.py
+│       │   ├── dataset_writer.py
+│       │   ├── jsonl_writer.py
+│       │   ├── csv_writer.py
+│       │   └── raw_store.py
+│       │
+│       ├── api/
+│       │   ├── __init__.py
+│       │   ├── server.py
+│       │   ├── routes_random.py
+│       │   ├── routes_health.py
+│       │   ├── routes_stats.py
+│       │   └── schemas.py
+│       │
+│       └── dashboard/
+│           ├── __init__.py
+│           ├── streamlit_app.py
+│           └── dashboard_helpers.py
+│
+├── scripts/
+│   ├── run_once.py
+│   ├── generate_dataset.py
+│   ├── generate_10000_runs.py
+│   ├── run_ablation_experiment.py
+│   ├── run_failure_simulation.py
+│   ├── run_stat_tests.py
+│   ├── train_digit_predictors.py
+│   ├── start_api.py
+│   └── start_dashboard.py
+│
+├── notebooks/
+│   ├── 01_distribution_analysis.ipynb
+│   ├── 02_digit_frequency_analysis.ipynb
+│   ├── 03_collision_analysis.ipynb
+│   ├── 04_source_correlation_analysis.ipynb
+│   ├── 05_ml_digit_prediction_attack.ipynb
+│   ├── 06_next_otp_prediction_attack.ipynb
+│   ├── 07_source_ablation_study.ipynb
+│   ├── 08_failure_mode_analysis.ipynb
+│   └── 09_final_report_figures.ipynb
+│
+├── data/
+│   ├── README.md
+│   ├── public/
+│   │   ├── otp_runs.csv
+│   │   ├── source_features.csv
+│   │   ├── run_summary.json
+│   │   └── experiment_manifest.json
+│   │
+│   ├── private_raw/
+│   │   ├── camera/
+│   │   ├── microphone/
+│   │   ├── cpu_jitter/
+│   │   ├── scheduler_jitter/
+│   │   └── final_digests/
+│   │
+│   ├── experiments/
+│   │   ├── exp_001_all_sources_10k/
+│   │   ├── exp_002_camera_only/
+│   │   ├── exp_003_mic_only/
+│   │   ├── exp_004_cpu_jitter_only/
+│   │   ├── exp_005_scheduler_only/
+│   │   ├── exp_006_hash_vs_xor/
+│   │   └── exp_007_failure_modes/
+│   │
+│   └── reports/
+│       ├── plots/
+│       ├── tables/
+│       └── summaries/
+│
+├── tests/
+│   ├── __init__.py
+│   ├── test_sources.py
+│   ├── test_health_tests.py
+│   ├── test_fusion.py
+│   ├── test_otp_generation.py
+│   ├── test_logging.py
+│   └── test_reproducibility.py
+│
+├── ml/
+│   ├── README.md
+│   ├── datasets.py
+│   ├── preprocessing.py
+│   ├── baselines.py
+│   ├── train_digit_models.py
+│   ├── train_sequence_models.py
+│   ├── evaluate_models.py
+│   ├── feature_importance.py
+│   └── results/
+│       ├── digit_prediction_scores.json
+│       ├── sequence_prediction_scores.json
+│       └── feature_importance.csv
+│
+├── reports/
+│   ├── final_project_report.md
+│   ├── research_paper_draft.md
+│   ├── resume_bullets.md
+│   └── presentation_outline.md
+│
+└── docker/
+    ├── Dockerfile
+    └── docker-compose.yml
+
+================================================================================
+8. STANDARD INTERFACES FOR AGENT IMPLEMENTATION
+================================================================================
+
+All entropy sources should implement a common interface.
+
+File: src/randomiser/sources/base.py
+
+Suggested dataclasses:
+
+SourceSample:
+- source_name: str
+- raw_bytes: bytes
+- collection_started_ns: int
+- collection_finished_ns: int
+- collection_duration_ms: float
+- metadata: dict
+- error: Optional[str]
+
+SourceConfig:
+- enabled: bool
+- target_bytes: int
+- timeout_ms: int
+- extra: dict
+
+EntropySource abstract class:
+- name: str
+- collect(config: SourceConfig) -> SourceSample
+- is_available() -> bool
+- warmup() -> None
+- cleanup() -> None
+
+HealthResult:
+- source_name: str
+- passed: bool
+- score: float
+- tests: dict
+- warnings: list[str]
+
+SourceFeatures:
+- source_name: str
+- byte_count: int
+- bit_ones_ratio: float
+- bit_zeros_ratio: float
+- shannon_entropy_per_byte: float
+- min_entropy_estimate: float
+- autocorrelation_lag1: float
+- unique_byte_count: int
+- mean_value: float
+- std_value: float
+- extra: dict
+
+RunRecord:
+- run_id: int
+- timestamp_ns: int
+- otp: str
+- otp_digits: list[int]
+- sources_used: list[str]
+- sources_failed: list[str]
+- source_features: dict
+- health_results: dict
+- mixer_name: str
+- conditioner_name: str
+- digest_preview: str
+- generation_time_ms: float
+- config_hash: str
+- run_status: str
+
+================================================================================
+9. SOURCE IMPLEMENTATION DETAILS
+================================================================================
+
+9.1 Camera source
+
+File:
+src/randomiser/sources/camera_source.py
+
+Dependencies:
+opencv-python
+numpy
+
+Implementation plan:
+1. Open default camera using cv2.VideoCapture(camera_index).
+2. Set fixed resolution from config.
+3. Optional warmup frames to allow sensor stabilization.
+4. Capture N frames.
+5. Convert to grayscale.
+6. Use one or multiple extraction strategies:
+   a. LSB extraction from pixel values.
+   b. Difference between consecutive frames.
+   c. LSB extraction from frame-delta values.
+7. Convert bit array to bytes.
+8. Return SourceSample.
+
+Recommended config:
+camera:
+  enabled: true
+  camera_index: 0
+  frames_per_run: 2
+  width: 320
+  height: 240
+  warmup_frames: 3
+  extract_mode: "frame_delta_lsb"
+  target_bytes: 2048
+
+Health metrics:
+- frame_mean
+- frame_std
+- delta_mean
+- delta_std
+- lsb_ones_ratio
+- raw_byte_count
+- camera_available
+
+Failure detection:
+- camera not available,
+- all frames identical,
+- near-zero variance,
+- too few bytes,
+- bit balance extremely skewed.
+
+9.2 Microphone source
+
+File:
+src/randomiser/sources/microphone_source.py
+
+Dependencies:
+sounddevice
+numpy
+
+Implementation plan:
+1. Record short audio window, e.g. 50-100 ms.
+2. Use sample rate 16000 or 44100.
+3. Convert float samples to int16 if needed.
+4. Extract LSBs from int16 samples or sample deltas.
+5. Convert to bytes.
+6. Return SourceSample.
+
+Recommended config:
+microphone:
+  enabled: true
+  sample_rate: 16000
+  duration_ms: 80
+  channels: 1
+  extract_mode: "sample_delta_lsb"
+  target_bytes: 2048
+
+Health metrics:
+- audio_mean
+- audio_std
+- zero_sample_ratio
+- clipping_ratio
+- lsb_ones_ratio
+- sample_count
+
+Failure detection:
+- microphone permission denied,
+- muted mic / all zeros,
+- too little variation,
+- clipping too high,
+- bit balance extremely skewed.
+
+9.3 CPU jitter source
+
+File:
+src/randomiser/sources/cpu_jitter_source.py
+
+Dependencies:
+standard library only
+numpy optional
+
+Implementation plan:
+1. Use time.perf_counter_ns().
+2. Run deterministic mini workload repeatedly:
+   x = (x * 1103515245 + 12345 + i) & 0xFFFFFFFF
+3. Measure delta between timestamps.
+4. Extract low-order bits from delta.
+5. Optionally mix deltas before conversion.
+6. Return raw bytes.
+
+Recommended config:
+cpu_jitter:
+  enabled: true
+  samples: 8192
+  workload_rounds: 1
+  low_bits: 8
+  target_bytes: 2048
+
+Health metrics:
+- delta_mean
+- delta_std
+- delta_min
+- delta_max
+- unique_delta_count
+- lsb_ones_ratio
+
+Failure detection:
+- too many identical deltas,
+- too low std,
+- too few unique deltas.
+
+9.4 Scheduler jitter source
+
+File:
+src/randomiser/sources/scheduler_jitter_source.py
+
+Dependencies:
+threading
+concurrent.futures
+standard library
+
+Implementation plan:
+1. Start N worker threads.
+2. Each thread records perf_counter_ns deltas.
+3. Each loop calls time.sleep(0) or yields execution.
+4. Collect raw low-order bytes from deltas.
+5. Stop after duration or sample target.
+6. Return SourceSample.
+
+Recommended config:
+scheduler_jitter:
+  enabled: true
+  threads: 4
+  duration_ms: 50
+  low_bits: 8
+  target_bytes: 2048
+
+Health metrics:
+- total_samples
+- per_thread_sample_counts
+- delta_mean
+- delta_std
+- unique_delta_count
+- lsb_ones_ratio
+
+Failure detection:
+- too few samples,
+- one thread dominates too much,
+- too many identical deltas,
+- too low timing variability.
+
+================================================================================
+10. HEALTH TESTS
+================================================================================
+
+The health tests are not meant to prove randomness. They are meant to detect obvious source failures.
+
+Recommended tests:
+
+1. Repetition count test
+Detects long repeated byte or bit values.
+If too many repeated bytes occur in a row, fail or warn.
+
+2. Frequency / bit balance test
+Compute ratio of 1 bits to total bits.
+Expected rough range can be broad for raw sources, e.g. 0.35 to 0.65 for warning, 0.20 to 0.80 for hard fail, depending on source.
+Do not set too strict thresholds before conditioning.
+
+3. Runs test
+Checks whether bits alternate or repeat too unusually.
+
+4. Autocorrelation lag-1
+Checks dependency between adjacent bytes/bits.
+
+5. Unique byte count
+If only a few byte values appear, source may be weak.
+
+6. Source-specific tests
+Camera:
+- frame variance > threshold,
+- consecutive frames not identical.
+Microphone:
+- non-zero audio std,
+- not clipped,
+- not all zeros.
+CPU/scheduler:
+- enough unique timing deltas,
+- std above threshold.
+
+Health gate policy:
+- If a source hard-fails, exclude it from fusion.
+- If a source warns but does not fail, include it with warning.
+- If fewer than min_required_sources pass, mark run as degraded or failed.
+
+Recommended min_required_sources:
+- For MVP: 2 of 4
+- For best dataset: 3 of 4
+
+================================================================================
+11. FEATURE EXTRACTION
+================================================================================
+
+Per-source features to log:
+
+Generic bit/byte features:
+- byte_count
+- bit_count
+- ones_count
+- zeros_count
+- ones_ratio
+- zeros_ratio
+- byte_mean
+- byte_std
+- unique_byte_count
+- shannon_entropy_per_byte
+- min_entropy_estimate
+- autocorrelation_lag1
+- longest_repetition_run
+- health_score
+
+Camera-specific:
+- frame_mean
+- frame_std
+- frame_delta_mean
+- frame_delta_std
+- frame_shape
+- extract_mode
+
+Microphone-specific:
+- audio_mean
+- audio_std
+- sample_rate
+- duration_ms
+- zero_sample_ratio
+- clipping_ratio
+
+CPU jitter-specific:
+- delta_mean_ns
+- delta_std_ns
+- delta_min_ns
+- delta_max_ns
+- unique_delta_count
+
+Scheduler-specific:
+- thread_count
+- per_thread_sample_count
+- scheduler_delta_mean_ns
+- scheduler_delta_std_ns
+
+Run-level features:
+- run_id
+- timestamp_ns
+- generation_time_ms
+- sources_used
+- sources_failed
+- source_count_used
+- mixer_version
+- conditioner_version
+- otp
+- otp digits split into six columns
+
+================================================================================
+12. MULTI-SOURCE FUSION ALGORITHM
+================================================================================
+
+Recommended algorithm name:
+HG-MSEF: Health-Gated Multi-Source Entropy Fusion
+
+Goal:
+Combine multiple entropy source blocks in a safe, explainable, and modular way.
+
+Rules:
+1. Do not directly output raw source bytes.
+2. Do not trust a source until health checks are done.
+3. Do not invent a cryptographic hash function.
+4. Use standard hash functions such as SHA-512 or BLAKE2b.
+5. Use domain separation labels to avoid ambiguous concatenation.
+6. Include run_id and timestamp as metadata, but do not rely on timestamp as entropy.
+7. Hash each source independently first.
+8. Hash all source digests together to get final digest.
+9. Use final digest for OTP generation.
+
+Pseudo-algorithm:
+
+Input:
+- run_id
+- timestamp_ns
+- source_samples: list[SourceSample]
+- source_features: dict
+- health_results: dict
+
+Steps:
+1. healthy_sources = []
+2. For each source:
+   a. run health tests
+   b. extract features
+   c. if health passed: include source
+   d. else: log failure and exclude
+3. if len(healthy_sources) < min_required_sources:
+   a. mark run as failed or degraded
+   b. optionally retry collection
+4. For each healthy source:
+   source_digest = HASH(
+      "RANDOMISER-SOURCE-v1" ||
+      source_name ||
+      raw_byte_length ||
+      raw_bytes ||
+      source_feature_summary ||
+      source_collection_timing
+   )
+5. final_digest = HASH(
+      "RANDOMISER-HG-MSEF-v1" ||
+      run_id ||
+      timestamp_ns ||
+      config_hash ||
+      sorted(source_digest entries by source_name)
+   )
+6. Return final_digest and metadata.
+
+Recommended hash:
+- hashlib.blake2b(digest_size=64)
+or
+- hashlib.sha512()
+
+BLAKE2b advantage:
+- fast,
+- built into Python hashlib,
+- supports personalization/keying options if needed.
+
+SHA-512 advantage:
+- widely recognized,
+- easy to explain.
+
+Recommended for first version:
+SHA-512.
+
+Alternative mixers for comparison experiments:
+1. Concat + SHA-512
+2. Per-source SHA-512 + final SHA-512
+3. XOR source digests + SHA-512
+4. Health-gated hash mixer (main)
+
+Do not use XOR-only as final method. It can be an experiment.
+
+================================================================================
+13. OTP GENERATION METHOD
+================================================================================
+
+Requirement:
+Generate a uniform 6-digit OTP from 000000 to 999999.
+
+Accepted method:
+Use rejection sampling.
+
+Reason:
+Avoid modulo bias and make the method defensible.
+
+Algorithm:
+1. Input final digest from fusion.
+2. Generate 32-bit candidate values by hashing digest + counter.
+3. Let M = 1,000,000.
+4. Let LIMIT = floor(2^32 / M) * M.
+5. If candidate < LIMIT, OTP = candidate % M.
+6. Else increment counter and retry.
+7. Format OTP as six digits with leading zeros.
+
+Pseudo-code:
+
+def otp_from_digest(digest):
+    M = 1_000_000
+    LIMIT = (2**32 // M) * M
+    counter = 0
+    while True:
+        block = sha256(digest + counter_bytes).digest()
+        value = int.from_bytes(block[:4], "big")
+        if value < LIMIT:
+            otp_int = value % M
+            return f"{otp_int:06d}"
+        counter += 1
+
+Rejected method:
+Using multiple variable-length random fragments to stitch together six digits.
+Reason:
+Can introduce bias and is harder to test.
+
+Optional output types for expansion:
+- OTP digits: 4, 6, 8
+- random integer in a range
+- random bytes
+- token hex
+- dice rolls
+- password generator
+
+================================================================================
+14. DATASET LOGGING DESIGN
+================================================================================
+
+Need to log 10,000 runs.
+
+Important separation:
+1. Public dataset: safe metadata and OTPs for analysis.
+2. Private raw data: raw entropy blocks and full digests. Do not upload publicly unless explicitly intended for research.
+
+Public CSV schema:
+
+run_id
+timestamp_ns
+timestamp_iso
+otp
+otp_digit_1
+otp_digit_2
+otp_digit_3
+otp_digit_4
+otp_digit_5
+otp_digit_6
+sources_enabled
+sources_used
+sources_failed
+source_count_used
+camera_health_pass
+camera_health_score
+camera_byte_count
+camera_ones_ratio
+camera_entropy_estimate
+camera_autocorrelation_lag1
+camera_frame_mean
+camera_frame_std
+mic_health_pass
+mic_health_score
+mic_byte_count
+mic_ones_ratio
+mic_entropy_estimate
+mic_autocorrelation_lag1
+mic_audio_mean
+mic_audio_std
+cpu_health_pass
+cpu_health_score
+cpu_byte_count
+cpu_ones_ratio
+cpu_entropy_estimate
+cpu_autocorrelation_lag1
+cpu_delta_mean_ns
+cpu_delta_std_ns
+scheduler_health_pass
+scheduler_health_score
+scheduler_byte_count
+scheduler_ones_ratio
+scheduler_entropy_estimate
+scheduler_autocorrelation_lag1
+scheduler_delta_mean_ns
+scheduler_delta_std_ns
+mixer_name
+mixer_version
+conditioner_name
+digest_preview
+generation_time_ms
+run_status
+warnings
+config_hash
+
+Private raw storage:
+For each run, optionally store raw blocks in compressed binary or .npz format:
+data/private_raw/run_000001/camera.bin
+data/private_raw/run_000001/microphone.bin
+data/private_raw/run_000001/cpu_jitter.bin
+data/private_raw/run_000001/scheduler_jitter.bin
+data/private_raw/run_000001/final_digest.bin
+
+Better for disk efficiency:
+Store raw data only for a subset of runs, e.g. every 100th run, or only failed/warning runs.
+
+Experiment manifest:
+Every dataset generation run should create:
+- config snapshot,
+- git commit hash if available,
+- Python version,
+- OS info,
+- hardware info if available,
+- source settings,
+- run count,
+- start/end time,
+- failures count.
+
+================================================================================
+15. 10,000-RUN DATA COLLECTION PLAN
+================================================================================
+
+Target:
+Generate at least 10,000 OTPs automatically.
+
+Command:
+python scripts/generate_dataset.py --runs 10000 --config config/laptop_mvp.yaml --out data/experiments/exp_001_all_sources_10k
+
+Per-run steps:
+1. Start timer.
+2. Collect from camera, microphone, CPU jitter, scheduler jitter in parallel.
+3. Extract source features.
+4. Run health tests.
+5. Exclude failed sources.
+6. Fuse healthy source blocks using HG-MSEF.
+7. Generate OTP using rejection sampling.
+8. Save public run record.
+9. Optionally save private raw blocks.
+10. Continue until 10,000 successful runs.
+
+Failure handling:
+- If one source fails but min_required_sources are met, run can continue with warning.
+- If too few sources pass, retry up to retry_limit.
+- If still failing, log failed run but do not count it toward successful OTP dataset unless configured.
+
+Estimated runtime:
+Depends on camera/audio collection duration. If each run records 50-100 ms audio plus camera capture, 10,000 runs may take significant time.
+To make it practical:
+- collect small blocks,
+- reuse camera object instead of reopening each run,
+- use short audio duration,
+- parallelize sources,
+- store raw data sparingly.
+
+Possible target:
+100-300 ms per run = 17 to 50 minutes for 10,000 runs.
+If camera/audio is slower, expect longer.
+
+================================================================================
+16. STATISTICAL ANALYSIS PLAN
+================================================================================
+
+Minimum analysis:
+1. Digit frequency for each position.
+2. Overall digit frequency 0-9.
+3. OTP collision count.
+4. Duplicate rate comparison to expected birthday-collision behavior.
+5. Last digit distribution.
+6. First digit distribution, remembering leading zeros are valid.
+7. Chi-square test for digit uniformity.
+8. Autocorrelation between sequential OTPs.
+9. Correlation between timestamp/run_id and OTP value.
+10. Correlation between source features and OTP digits.
+11. Source health failure summary.
+12. Generation time distribution.
+
+Important fact:
+There are 1,000,000 possible six-digit OTPs.
+10,000 samples cover only about 1% of the output space.
+Duplicates are expected.
+Expected duplicate pairs for 10,000 draws from 1,000,000 values:
+about 10,000 * 9,999 / (2 * 1,000,000) ≈ 50.
+So duplicates do not automatically mean failure.
+
+Good signs:
+- digit prediction accuracy near 10%,
+- full OTP prediction near random,
+- low correlation with source metrics,
+- digit frequencies approximately uniform,
+- no obvious sequential trend,
+- health checks catch intentionally bad source states.
+
+Bad signs:
+- one digit appears much more often,
+- a position has strong bias,
+- OTP correlates with timestamp/run_id,
+- next OTP is easier to predict from previous OTPs,
+- ML digit accuracy significantly above 10%,
+- source failure causes repeated or biased OTPs.
+
+================================================================================
+17. ML ATTACK / PREDICTABILITY ANALYSIS
+================================================================================
+
+Purpose:
+Try to break the generator using ML and statistical analysis.
+
+Do not claim ML can prove security. It can reveal detectable patterns.
+
+Recommended ML tasks:
+
+Task 1: Predict each OTP digit independently
+Input features:
+- source metrics,
+- health scores,
+- generation time,
+- timestamp-derived features,
+- previous OTP digits optionally.
+Target:
+- digit 1, digit 2, ..., digit 6 separately.
+Baseline:
+- random chance = 10% per digit.
+Good result:
+- model accuracy near 10%.
+Bad result:
+- much above 10%, especially >15-20%.
+
+Task 2: Predict next OTP digit from previous OTPs
+Input:
+- previous k OTPs,
+- previous source metrics,
+- run_id/time features.
+Target:
+- next digit or next OTP bucket.
+Models:
+- logistic regression,
+- random forest,
+- XGBoost/LightGBM if installed,
+- simple neural net,
+- LSTM/GRU optional.
+
+Task 3: Predict OTP bucket
+Instead of 1,000,000 classes, divide OTP into buckets:
+- 0-99,999
+- 100,000-199,999
+- ...
+10 buckets or 100 buckets.
+Baseline:
+- 10 buckets => 10% baseline,
+- 100 buckets => 1% baseline.
+
+Task 4: Source-feature leakage test
+Input:
+- source entropy metrics and health scores.
+Target:
+- OTP digit.
+Goal:
+See whether output is correlated with source features.
+
+Task 5: Anomaly detection for source health
+Input:
+- source features.
+Target:
+- healthy/failure mode.
+Models:
+- Isolation Forest,
+- One-Class SVM,
+- Random Forest classifier,
+- Autoencoder optional.
+This is likely more useful than full OTP prediction.
+
+Models to include:
+- DummyClassifier baseline,
+- LogisticRegression,
+- RandomForestClassifier,
+- GradientBoostingClassifier,
+- MLPClassifier,
+- optional XGBoost/LightGBM.
+
+Metrics:
+- accuracy,
+- balanced accuracy,
+- macro F1,
+- confusion matrix,
+- ROC-AUC for binary tasks,
+- log loss if useful.
+
+Interpretation:
+If models cannot beat baseline, it supports the claim that no simple patterns were detected in the available dataset.
+If models beat baseline, diagnose leakage and improve generator.
+
+================================================================================
+18. EXPERIMENTS TO RUN
+================================================================================
+
+Experiment 001: All sources, 10,000 runs
+Purpose:
+Main dataset for resume/demo.
+Sources:
+camera + mic + CPU jitter + scheduler jitter.
+
+Experiment 002: Camera only
+Purpose:
+Test weakness/strength of camera source alone.
+
+Experiment 003: Microphone only
+Purpose:
+Test microphone source alone.
+
+Experiment 004: CPU jitter only
+Purpose:
+Test timing jitter alone.
+
+Experiment 005: Scheduler jitter only
+Purpose:
+Test scheduler jitter alone.
+
+Experiment 006: Source ablation
+Datasets:
+- camera + mic,
+- camera + CPU,
+- camera + scheduler,
+- mic + CPU,
+- CPU + scheduler,
+- camera + mic + CPU,
+- all four.
+Purpose:
+Determine whether multi-source fusion improves metrics.
+
+Experiment 007: Mixer comparison
+Compare:
+- simple concatenation + hash,
+- XOR digests + hash,
+- per-source hash + final hash,
+- HG-MSEF health-gated mixer.
+
+Experiment 008: Failure simulation
+Simulate:
+- mic muted,
+- camera covered/constant frames,
+- CPU under stress,
+- scheduler overloaded,
+- source disabled.
+Purpose:
+Test health gate and output behavior.
+
+Experiment 009: OS randomness baseline
+Use os.urandom/secrets as baseline for distribution and ML predictability.
+Do not treat it as project source.
+
+Experiment 010: Larger dataset
+Generate 100,000 OTPs if runtime permits.
+
+================================================================================
+19. DASHBOARD EXPANSION
+================================================================================
+
+Tool:
+Streamlit.
+
+Dashboard pages:
+
+Page 1: Live Generator
+- Generate one OTP.
+- Show source status.
+- Show active source count.
+- Show latest source metrics.
+- Show warnings.
+
+Page 2: Dataset Overview
+- Load CSV.
+- Number of runs.
+- Collision count.
+- Digit frequencies.
+- Health failure counts.
+
+Page 3: Source Health
+- Per-source entropy estimate over time.
+- Bit balance over time.
+- Failure/warning timeline.
+
+Page 4: Statistical Tests
+- Chi-square results.
+- Autocorrelation plots.
+- digit distribution.
+
+Page 5: ML Attack Results
+- Digit prediction accuracy vs 10% baseline.
+- Feature importance.
+- Confusion matrices.
+
+Page 6: Experiment Comparison
+- Compare all-sources vs single-source vs baseline.
+
+================================================================================
+20. API EXPANSION
+================================================================================
+
+Tool:
+FastAPI.
+
+Endpoints:
+GET /health
+Returns service health.
+
+GET /sources
+Returns available entropy sources.
+
+GET /sources/status
+Returns latest health status per source.
+
+GET /random/otp
+Generates one 6-digit OTP.
+
+GET /random/int?min=1&max=100
+Generates random integer in range.
+
+GET /random/bytes?count=32
+Generates random bytes as hex/base64.
+
+GET /stats/latest
+Returns latest run metrics.
+
+POST /dataset/generate
+Optional endpoint to start dataset generation. For safety, prefer CLI script.
+
+GET /dataset/export
+Exports public dataset.
+
+Implementation note:
+Dataset generation may be long-running. Avoid blocking API request. For MVP, keep dataset generation as CLI script.
+
+================================================================================
+21. CLI DESIGN
+================================================================================
+
+Recommended CLI commands:
+
+randomiser generate otp
+Generates one OTP.
+
+randomiser generate bytes --count 32
+Generates random bytes.
+
+randomiser collect --runs 10000 --config config/laptop_mvp.yaml --out data/experiments/exp_001
+Generates dataset.
+
+randomiser test --dataset data/public/otp_runs.csv
+Runs statistical tests.
+
+randomiser attack --dataset data/public/otp_runs.csv
+Runs ML attack models.
+
+randomiser dashboard
+Starts Streamlit dashboard.
+
+randomiser api
+Starts FastAPI server.
+
+randomiser sources list
+Lists source availability.
+
+randomiser sources test
+Tests all sources once.
+
+================================================================================
+22. CONFIGURATION DESIGN
+================================================================================
+
+Use YAML config.
+
+Example config/default.yaml:
+
+project:
+  name: randomiser
+  version: "0.1.0"
+
+run:
+  min_required_sources: 3
+  retry_limit: 2
+  save_private_raw: false
+  private_raw_sample_rate: 100
+  output_dir: data/experiments/exp_001_all_sources_10k
+
+sources:
+  camera:
+    enabled: true
+    camera_index: 0
+    frames_per_run: 2
+    warmup_frames: 3
+    width: 320
+    height: 240
+    extract_mode: frame_delta_lsb
+    target_bytes: 2048
+    timeout_ms: 1000
+
+  microphone:
+    enabled: true
+    sample_rate: 16000
+    duration_ms: 80
+    channels: 1
+    extract_mode: sample_delta_lsb
+    target_bytes: 2048
+    timeout_ms: 1000
+
+  cpu_jitter:
+    enabled: true
+    samples: 8192
+    low_bits: 8
+    target_bytes: 2048
+    timeout_ms: 1000
+
+  scheduler_jitter:
+    enabled: true
+    threads: 4
+    duration_ms: 50
+    low_bits: 8
+    target_bytes: 2048
+    timeout_ms: 1000
+
+health:
+  bit_balance_warn_low: 0.35
+  bit_balance_warn_high: 0.65
+  bit_balance_fail_low: 0.20
+  bit_balance_fail_high: 0.80
+  min_unique_bytes_warn: 32
+  min_unique_bytes_fail: 8
+  max_autocorrelation_abs_warn: 0.25
+  max_autocorrelation_abs_fail: 0.50
+
+fusion:
+  mixer: hg_msef
+  hash_function: sha512
+  domain_label: RANDOMISER-HG-MSEF-v1
+
+otp:
+  digits: 6
+  method: rejection_sampling
+
+logging:
+  public_csv: otp_runs.csv
+  jsonl: otp_runs.jsonl
+  write_every_n_runs: 10
+
+================================================================================
+23. DEPENDENCIES
+================================================================================
+
+Base dependencies:
+python >= 3.10
+numpy
+pandas
+scipy
+opencv-python
+sounddevice
+pyyaml
+scikit-learn
+matplotlib
+seaborn optional but avoid if strict style rules not relevant
+fastapi
+uvicorn
+streamlit
+pytest
+joblib
+
+Optional dependencies:
+plotly
+rich
+typer
+xgboost
+lightgbm
+torch, only if deep sequence models are added
+
+Recommended CLI framework:
+Typer or argparse.
+For simplicity, use argparse first or Typer if preferred.
+
+================================================================================
+24. IMPLEMENTATION ROADMAP
+================================================================================
+
+10-day MVP plan:
+
+Day 1:
+- Create repo structure.
+- Implement config loader.
+- Implement base source interface and data models.
+- Implement CPU jitter source first because it requires no external permission.
+
+Day 2:
+- Implement scheduler jitter source.
+- Implement feature extraction for generic raw bytes and timing deltas.
+
+Day 3:
+- Implement camera source with OpenCV.
+- Add camera availability test.
+
+Day 4:
+- Implement microphone source with sounddevice.
+- Add mic availability/permission handling.
+
+Day 5:
+- Implement health tests.
+- Implement source health score.
+
+Day 6:
+- Implement HG-MSEF mixer and conditioner.
+- Implement OTP rejection sampling.
+
+Day 7:
+- Implement central entropy manager with parallel collection.
+- Generate one OTP from all sources.
+
+Day 8:
+- Implement dataset logger.
+- Run 1,000 test runs.
+- Fix failures.
+
+Day 9:
+- Run 10,000 runs.
+- Implement basic statistical analysis script.
+
+Day 10:
+- Implement initial ML digit prediction baseline.
+- Write README and project documentation.
+
+30-day strong version:
+
+Week 1:
+- Build generator MVP.
+- 4 sources, parallel manager, health tests, OTP generator.
+
+Week 2:
+- Dataset generation and statistical analysis.
+- Notebook reports and plots.
+- Improve logging and failure handling.
+
+Week 3:
+- ML attack phase.
+- Digit prediction, next digit prediction, feature importance.
+- Source ablation experiments.
+
+Week 4:
+- Streamlit dashboard.
+- FastAPI/CLI.
+- Final README, report, demo video, resume bullets.
+
+2-3 month research version:
+- Add diode hardware source.
+- Add NIST-style tests/Dieharder/PractRand if possible.
+- Generate 100k or 1M outputs.
+- Write paper-style report.
+- Formal threat model and failure analysis.
+
+================================================================================
+25. TESTING PLAN
+================================================================================
+
+Unit tests:
+1. Source classes return SourceSample.
+2. SourceSample contains bytes.
+3. Health tests catch all-zero data.
+4. Health tests pass reasonably random-like data.
+5. Mixer output changes when input changes.
+6. Mixer output length is correct.
+7. OTP always has exactly 6 digits.
+8. OTP allows leading zeros.
+9. Rejection sampling output always in range 000000-999999.
+10. Logger writes expected columns.
+11. Config loader validates required fields.
+12. Failed source does not crash manager.
+
+Integration tests:
+1. Run all available sources once.
+2. Generate 100 OTPs.
+3. Generate dataset with 100 runs.
+4. Run statistical tests on small dataset.
+5. Train dummy ML baseline.
+
+Manual tests:
+1. Cover camera and run camera source.
+2. Mute mic and verify health warning/failure.
+3. Disable camera permission and verify graceful failure.
+4. Stress CPU and compare jitter metrics.
+5. Run scheduler source with different thread counts.
+
+================================================================================
+26. STATISTICAL TESTS TO IMPLEMENT
+================================================================================
+
+Basic:
+- digit frequency count,
+- per-position digit frequency,
+- chi-square goodness of fit,
+- OTP collision count,
+- duplicate count,
+- autocorrelation of OTP integer values,
+- autocorrelation of each digit sequence,
+- runs test on final output bits if available,
+- bit balance of conditioned bytes,
+- byte histogram.
+
+Advanced:
+- mutual information between source metrics and OTP digits,
+- Spearman/Pearson correlation,
+- entropy estimate per digit,
+- source ablation comparison.
+
+Important interpretation:
+A statistically good output does not prove cryptographic security. It only shows no tested weakness was detected.
+
+================================================================================
+27. ML ATTACK IMPLEMENTATION DETAILS
+================================================================================
+
+Files:
+ml/datasets.py
+ml/preprocessing.py
+ml/baselines.py
+ml/train_digit_models.py
+ml/evaluate_models.py
+
+Feature columns:
+All numeric source metrics, health scores, generation_time_ms, source_count_used, run_id maybe in separate test. Avoid leaking OTP-derived features into prediction.
+
+Targets:
+- otp_digit_1 ... otp_digit_6
+- otp_bucket_10
+- otp_bucket_100
+- next_digit_i
+
+Train/test split:
+- Use chronological split for next-OTP prediction.
+- Use random split for source-feature leakage prediction.
+- Compare against DummyClassifier.
+
+Models:
+- DummyClassifier(strategy="most_frequent")
+- DummyClassifier(strategy="uniform")
+- LogisticRegression(max_iter=...)
+- RandomForestClassifier
+- GradientBoostingClassifier
+- MLPClassifier
+
+Expected result:
+Digit prediction should be near 10% accuracy if generator has no obvious leakage.
+
+Report:
+- per-digit accuracy,
+- average accuracy,
+- baseline accuracy,
+- confusion matrix,
+- feature importance,
+- conclusion.
+
+================================================================================
+28. SECURITY AND PRIVACY NOTES
+================================================================================
+
+This is a research prototype.
+Do not use generated OTPs for real authentication.
+Do not store real authentication OTPs.
+Do not expose API publicly.
+Do not upload private raw entropy data unless intentionally publishing research data.
+Do not upload full final digests if claiming security.
+
+Public dataset may contain OTP outputs and source features for analysis.
+Private folder may contain raw source bytes and full final digests.
+
+Important README disclaimer:
+This project is for educational, research, and portfolio purposes. It is not a certified cryptographic TRNG and should not be used in production authentication systems. Production OTP systems should use standardized HOTP/TOTP implementations and secure key management.
+
+================================================================================
+29. RESUME POSITIONING
+================================================================================
+
+Base resume bullet:
+Built a Python-based multi-source entropy OTP generator using camera noise, microphone ADC noise, CPU timing jitter, and OS scheduler jitter to generate 6-digit OTPs with experiment logging.
+
+Strong resume bullet:
+Developed a multi-source entropy-based OTP generation system in Python, combining four laptop-derived entropy sources using health-gated SHA-512 fusion and rejection sampling for unbiased 6-digit OTP generation.
+
+Best resume bullet:
+Built and evaluated a multi-source entropy-based OTP generation platform with four laptop-derived entropy sources, health-gated fusion, SHA-512 conditioning, 10,000-run dataset logging, statistical randomness testing, and ML-based predictability analysis.
+
+Interview pitch:
+I built this project because randomness is a hidden but critical part of secure computing. Most software random generators are deterministic and depend on seed quality. I wanted to understand how systems collect and validate entropy, so I created a laptop-only multi-source entropy pipeline using camera sensor noise, microphone ADC noise, CPU timing jitter, and scheduler timing jitter. The system health-checks each source, fuses healthy sources using a hash-based mixer, generates six-digit OTPs using unbiased rejection sampling, logs 10,000 runs, and then uses statistics and ML models to test whether outputs are predictable.
+
+What to say if asked "Is it truly random?":
+I would describe it as a hardware-derived entropy prototype, not a certified true random generator. The project collects physical and system-level noise sources and evaluates them statistically, but I avoid claiming perfect randomness. The focus is on engineering the entropy pipeline and testing for detectable predictability.
+
+What to say if asked "Why not just use Python random?":
+Python's random module is deterministic and not suitable for security. Python's secrets module and OS randomness are better for production. My project is not meant to replace them; it is meant to understand entropy collection, conditioning, and validation underneath.
+
+================================================================================
+30. RESEARCH PAPER POSSIBILITY
+================================================================================
+
+Possible paper title:
+Design and Evaluation of a Multi-Source Laptop-Derived Entropy Fusion System for OTP Generation
+
+Research question:
+Can a multi-source laptop-derived entropy fusion system generate six-digit OTPs whose outputs remain statistically uniform and difficult to predict from source metadata, previous outputs, and ML-based attack models?
+
+Paper structure:
+1. Abstract
+2. Introduction
+3. Background on PRNG, TRNG, entropy, OTP
+4. Proposed entropy sources
+5. HG-MSEF fusion algorithm
+6. OTP generation using rejection sampling
+7. Dataset generation methodology
+8. Statistical randomness evaluation
+9. ML-based predictability attack
+10. Results
+11. Limitations
+12. Future work
+13. Conclusion
+
+Novelty angle:
+Not "inventing randomness".
+Instead:
+- laptop-only multi-source entropy fusion,
+- health-gated source validation,
+- OTP generation and dataset logging,
+- ML-based predictability evaluation,
+- source ablation and failure simulation.
+
+================================================================================
+31. FUTURE EXPANSIONS
+================================================================================
+
+Expansion 1: Add diode electrical noise hardware
+Use Arduino/Pico/ESP32 + diode/Zener noise circuit.
+Compare laptop-only vs external electrical noise.
+
+Expansion 2: Add Raspberry Pi standalone device
+Deploy the generator as a small entropy box.
+
+Expansion 3: Add API service
+FastAPI endpoint for OTP/random bytes.
+
+Expansion 4: Add dashboard
+Streamlit dashboard for live source health and dataset analysis.
+
+Expansion 5: Add more output types
+Random bytes, tokens, passwords, dice rolls, random integers.
+
+Expansion 6: Add source ablation study
+Evaluate all source combinations.
+
+Expansion 7: Add failure simulation
+Muted mic, frozen camera, CPU stress, scheduler anomalies.
+
+Expansion 8: Add anomaly detection
+Detect weak/failing entropy sources using ML.
+
+Expansion 9: Add standard randomness test suites
+NIST STS, Dieharder, PractRand if feasible.
+
+Expansion 10: Add automatic report generation
+Generate PDF/HTML report from dataset.
+
+Expansion 11: Add Docker support
+Containerize API/dashboard/analysis, though camera/mic access in Docker can be tricky.
+
+Expansion 12: Add plugin architecture
+Allow new entropy sources to be dropped into sources/ and auto-registered.
+
+Expansion 13: Add web UI
+React/Next.js dashboard later.
+
+Expansion 14: Add comparison against weak generators
+Compare against time-based generator, fixed-seed PRNG, modulo-only generator, and single-source generators.
+
+Expansion 15: Add larger dataset
+100,000 or 1,000,000 OTPs if runtime allows.
+
+================================================================================
+32. ADDITIONAL IDEAS FROM ASSISTANT
+================================================================================
+
+32.1 Plugin-style source registry
+Each source registers itself in sources/registry.py.
+This allows config to enable/disable sources dynamically.
+
+Example:
+SOURCE_REGISTRY = {
+  "camera": CameraSource,
+  "microphone": MicrophoneSource,
+  "cpu_jitter": CPUJitterSource,
+  "scheduler_jitter": SchedulerJitterSource,
+  "os_random_baseline": OSRandomBaselineSource,
+}
+
+32.2 Run manifest and reproducibility
+Every experiment folder should include:
+- config.yaml
+- manifest.json
+- otp_runs.csv
+- summary.json
+- logs.txt
+- plots/
+- ml_results/
+
+32.3 Hash config and code version
+Create config_hash from config content.
+Store git commit hash if available.
+
+32.4 Degraded mode
+If one source fails, continue if enough sources pass.
+Store run_status = "ok", "degraded", or "failed".
+
+32.5 Warmup phase
+Before dataset generation:
+- warm up camera,
+- test microphone access,
+- run CPU/scheduler jitter once,
+- display source readiness.
+
+32.6 Calibration mode
+Run 100 test samples and estimate initial thresholds.
+
+Command:
+randomiser calibrate --runs 100
+
+32.7 Experiment tags
+Allow config to tag experiments:
+experiment_name: all_sources_10k
+notes: "Laptop-only MVP with covered camera and quiet room"
+
+32.8 Privacy-safe dataset mode
+Store only digest previews, not full digests.
+Store raw bytes only privately.
+
+32.9 Source-dominance analysis
+Try to detect if one source dominates output by ablation and feature correlation.
+
+32.10 Health-score weighting
+Instead of only pass/fail, optionally use source health score to decide if source is included.
+Do not weight entropy by simply multiplying bytes. Use health score only for gating/metadata unless carefully designed.
+
+32.11 Keep algorithm standard at cryptographic core
+Customizable part:
+- source collection,
+- health gating,
+- source scoring,
+- experimental analysis.
+Non-custom part:
+- cryptographic hash,
+- OTP rejection sampling.
+
+32.12 Avoid over-engineering initial version
+The MVP should run end-to-end before adding dashboard/API/advanced ML.
+
+================================================================================
+33. DEVELOPMENT PRIORITY ORDER
+================================================================================
+
+Priority 1:
+CPU jitter source
+Scheduler jitter source
+Generic feature extractor
+Health tests
+Hash mixer
+OTP generator
+Single-run CLI
+
+Priority 2:
+Camera source
+Microphone source
+Parallel entropy manager
+Dataset logger
+10,000-run script
+
+Priority 3:
+Statistical analysis scripts
+ML digit prediction attack
+Notebooks
+README
+
+Priority 4:
+Dashboard
+API
+Source ablation experiments
+Failure simulation
+
+Priority 5:
+Hardware diode source
+Research paper
+Advanced randomness test suites
+
+================================================================================
+34. CODING AGENT TASK BREAKDOWN
+================================================================================
+
+Task A: Setup project
+- Create pyproject.toml or requirements.txt.
+- Create src/randomiser package.
+- Create config/default.yaml.
+- Create README skeleton.
+
+Task B: Implement core models
+- SourceSample
+- SourceFeatures
+- HealthResult
+- RunRecord
+- SourceConfig
+
+Task C: Implement sources
+- Base EntropySource
+- CPUJitterSource
+- SchedulerJitterSource
+- CameraSource
+- MicrophoneSource
+- OSRandomBaselineSource for comparison only
+
+Task D: Implement features
+- bit counting
+- bit balance
+- entropy estimate
+- autocorrelation
+- unique byte count
+- source-specific metrics
+
+Task E: Implement health
+- repetition test
+- frequency test
+- unique byte count test
+- autocorrelation test
+- source-specific checks
+
+Task F: Implement fusion
+- source_hasher.py
+- hg_msef.py
+- conditioner.py
+- alternative mixers for experiments
+
+Task G: Implement OTP
+- rejection_sampling.py
+- otp_generator.py
+- formatters.py
+
+Task H: Implement manager
+- parallel_collector.py
+- entropy_manager.py
+- run_context.py
+
+Task I: Implement logging
+- CSV writer
+- JSONL writer
+- experiment manifest writer
+- optional raw store
+
+Task J: Implement scripts
+- run_once.py
+- generate_dataset.py
+- run_stat_tests.py
+- train_digit_predictors.py
+
+Task K: Implement analysis
+- distribution analysis
+- collision analysis
+- correlation analysis
+- ML attack
+
+Task L: Implement dashboard/API later
+- Streamlit app
+- FastAPI server
+
+================================================================================
+35. MINIMUM VIABLE RUN FLOW
+================================================================================
+
+Pseudo-code:
+
+load config
+initialize source registry
+create EntropyManager
+for run_id in range(1, runs + 1):
+    context = RunContext(run_id, timestamp_ns, config_hash)
+    samples = manager.collect_all_sources_parallel(context)
+    features = extract_features(samples)
+    health_results = run_health_tests(samples, features)
+    healthy_samples = filter_passed_sources(samples, health_results)
+    if len(healthy_samples) < min_required_sources:
+        retry or mark failed
+        continue
+    final_digest = hg_msef_fuse(healthy_samples, features, health_results, context)
+    otp = generate_otp_rejection_sampling(final_digest)
+    record = build_run_record(...)
+    logger.write(record)
+print summary
+
+================================================================================
+36. LIMITATIONS TO DOCUMENT
+================================================================================
+
+1. Laptop-only sources are not equivalent to direct physical electrical noise from a dedicated TRNG circuit.
+2. Camera and microphone data can be affected by OS drivers and preprocessing.
+3. CPU and scheduler jitter are affected by system load and Python interpreter behavior.
+4. Hashing conditions entropy but does not create entropy from nothing.
+5. Passing statistical tests does not prove cryptographic security.
+6. 10,000 OTPs are useful for analysis but not enough to exhaustively test a 1,000,000-value OTP space.
+7. This is not certified under NIST/FIPS or any formal standard.
+8. This should not be used for production authentication.
+9. Raw entropy and OTP outputs should not be stored together in production systems.
+10. ML failing to predict does not prove security; it only means tested models did not detect exploitable patterns.
+
+================================================================================
+37. FINAL PROJECT DELIVERABLES
+================================================================================
+
+Must-have:
+1. Working Python project.
+2. Four entropy source modules.
+3. Central manager with parallel collection.
+4. HG-MSEF mixer.
+5. 6-digit OTP generator using rejection sampling.
+6. 10,000-run dataset.
+7. Statistical analysis results.
+8. Basic ML attack results.
+9. README with architecture diagram.
+10. Limitations section.
+
+Good-to-have:
+1. Streamlit dashboard.
+2. FastAPI service.
+3. CLI tool.
+4. Source ablation experiments.
+5. Failure simulation.
+6. Demo video.
+7. Final report.
+8. Resume bullets.
+
+Advanced:
+1. Hardware diode source.
+2. NIST/Dieharder/PractRand tests.
+3. 100k/1M dataset.
+4. Research paper draft.
+5. Docker deployment.
+
+================================================================================
+38. FINAL AGENT INSTRUCTION SUMMARY
+================================================================================
+
+Build a Python-first, modular, decentralized entropy-based OTP generator.
+
+Main requirements:
+- Implement 4 laptop-only entropy sources: camera, microphone, CPU jitter, scheduler jitter.
+- Each source must be in its own file and implement a shared EntropySource interface.
+- A central EntropyManager must collect from sources in parallel.
+- Health tests must run before fusion.
+- Failed sources must be excluded or marked degraded.
+- Implement HG-MSEF: Health-Gated Multi-Source Entropy Fusion.
+- Use SHA-512 or BLAKE2b for conditioning.
+- Generate OTPs using rejection sampling, not variable-length stitching.
+- Log 10,000+ runs with source metrics and OTP output.
+- Store public metadata separately from private raw entropy.
+- Build statistical analysis scripts.
+- Build ML attack models to test predictability.
+- Document all accepted and rejected ideas.
+- Keep claims honest: this is not a certified production TRNG.
+
+Recommended first implementation target:
+An MVP that can run:
+
+python scripts/run_once.py
+python scripts/generate_dataset.py --runs 10000 --config config/laptop_mvp.yaml
+python scripts/run_stat_tests.py --dataset data/experiments/exp_001_all_sources_10k/otp_runs.csv
+python scripts/train_digit_predictors.py --dataset data/experiments/exp_001_all_sources_10k/otp_runs.csv
+
+Expected final identity:
+A resume-ready B.Tech portfolio project demonstrating systems programming, entropy engineering, cryptographic conditioning, dataset creation, statistical testing, and ML-based security evaluation.
+
+================================================================================
+END OF DOCUMENT
+================================================================================

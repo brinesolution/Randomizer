@@ -1,0 +1,6 @@
+project_name: randomiser
+environment: development
+sources:
+  enabled:
+    - cpu_jitter
+    - scheduler_jitter

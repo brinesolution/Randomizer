@@ -1,0 +1,203 @@
+PROJECT: RANDOMISER
+MVP-FIRST PROPOSED FILE STRUCTURE
+
+Purpose:
+This structure replaces the earlier research-heavy scaffold with a smaller
+implementation-first layout. It keeps only what is needed to build the
+generator MVP cleanly, while leaving room to add analysis, apps, and research
+artifacts later.
+
+Main design goals:
+1. Keep the entropy generator pipeline small and understandable.
+2. Separate source collection, pipeline logic, logging, and CLI.
+3. Keep only the configs, docs, scripts, and tests needed for the MVP.
+4. Remove dashboard, ML, reporting, notebook, and infrastructure clutter for now.
+
+
+========================================================================
+1. RECOMMENDED MVP STRUCTURE
+========================================================================
+
+randomiser/
+│
+├── README.md
+├── LICENSE
+├── pyproject.toml
+├── requirements.txt
+├── .gitignore
+├── .env.example
+├── Makefile
+├── pre-project-palnning.txt
+├── proposed-project-structure.txt
+│
+├── config/
+│   ├── default.yaml
+│   ├── laptop_mvp.yaml
+│   ├── all_sources.yaml
+│   ├── camera_only.yaml
+│   ├── mic_only.yaml
+│   ├── cpu_scheduler_only.yaml
+│   └── degraded_mode.yaml
+│
+├── docs/
+│   ├── project_overview.md
+│   ├── architecture.md
+│   ├── algorithm_hg_msef.md
+│   ├── entropy_sources.md
+│   ├── source_health_tests.md
+│   ├── otp_generation.md
+│   ├── dataset_schema.md
+│   ├── limitations.md
+│   └── diagrams/
+│       └── pipeline_overview.png
+│
+├── src/
+│   └── randomiser/
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── version.py
+│       │
+│       ├── core/
+│       │   ├── __init__.py
+│       │   ├── models.py
+│       │   ├── enums.py
+│       │   ├── constants.py
+│       │   ├── exceptions.py
+│       │   ├── config_loader.py
+│       │   ├── logging_config.py
+│       │   ├── paths.py
+│       │   ├── hashing.py
+│       │   ├── timing.py
+│       │   └── utils.py
+│       │
+│       ├── sources/
+│       │   ├── __init__.py
+│       │   ├── base.py
+│       │   ├── registry.py
+│       │   ├── camera_source.py
+│       │   ├── microphone_source.py
+│       │   ├── cpu_jitter_source.py
+│       │   ├── scheduler_jitter_source.py
+│       │   ├── os_random_baseline.py
+│       │   └── source_helpers.py
+│       │
+│       ├── pipeline/
+│       │   ├── __init__.py
+│       │   ├── entropy_manager.py
+│       │   ├── parallel_collector.py
+│       │   ├── run_context.py
+│       │   ├── warmup.py
+│       │   ├── calibration.py
+│       │   ├── features.py
+│       │   ├── health_tests.py
+│       │   ├── health_gate.py
+│       │   ├── source_hasher.py
+│       │   ├── hg_msef.py
+│       │   ├── conditioner.py
+│       │   ├── rejection_sampling.py
+│       │   ├── otp_generator.py
+│       │   └── degraded_mode.py
+│       │
+│       ├── io/
+│       │   ├── __init__.py
+│       │   ├── manifest_writer.py
+│       │   ├── run_logger.py
+│       │   ├── csv_writer.py
+│       │   ├── jsonl_writer.py
+│       │   ├── parquet_writer.py
+│       │   ├── raw_store.py
+│       │   ├── public_export.py
+│       │   └── artifact_namer.py
+│       │
+│       ├── cli/
+│       │   ├── __init__.py
+│       │   ├── app.py
+│       │   ├── run_once_cmd.py
+│       │   ├── generate_dataset_cmd.py
+│       │   ├── calibrate_cmd.py
+│       │   └── inspect_experiment_cmd.py
+│       │
+│       └── integrations/
+│           ├── __init__.py
+│           ├── camera_backend.py
+│           ├── microphone_backend.py
+│           └── system_metadata.py
+│
+├── scripts/
+│   ├── run_once.py
+│   ├── generate_dataset.py
+│   └── calibrate_sources.py
+│
+├── tests/
+│   ├── conftest.py
+│   ├── unit/
+│   │   ├── test_models.py
+│   │   ├── test_config_loader.py
+│   │   ├── test_cpu_jitter_source.py
+│   │   ├── test_scheduler_jitter_source.py
+│   │   ├── test_camera_source.py
+│   │   ├── test_microphone_source.py
+│   │   ├── test_feature_extraction.py
+│   │   ├── test_health_tests.py
+│   │   ├── test_hg_msef.py
+│   │   ├── test_conditioner.py
+│   │   ├── test_rejection_sampling.py
+│   │   ├── test_otp_generator.py
+│   │   └── test_run_logger.py
+│   │
+│   ├── integration/
+│   │   ├── test_collect_all_sources.py
+│   │   ├── test_generate_100_otps.py
+│   │   └── test_dataset_generation.py
+│   │
+│   └── fixtures/
+│       └── sample_config.yaml
+│
+└── data/
+    ├── experiments/
+    └── private/
+        ├── raw_entropy/
+        └── debug_captures/
+
+
+========================================================================
+2. WHAT WAS REMOVED FOR NOW
+========================================================================
+
+Removed from the current scaffold:
+- apps/
+- notebooks/
+- reports/
+- infra/
+- .github/
+- src/randomiser/analysis/
+- src/randomiser/ml/
+- src/randomiser/services/
+- ML/statistical training and reporting scripts
+- expansion configs and research-only docs
+- seeded experiment result folders
+
+These can be added back later after the generator MVP is working end to end.
+
+
+========================================================================
+3. WHY THIS MVP STRUCTURE IS BETTER RIGHT NOW
+========================================================================
+
+1. It reduces noise.
+The repo focuses on building the generator instead of pretending the whole
+research platform already exists.
+
+2. It keeps the main implementation path obvious.
+The important code is now under:
+- sources/
+- pipeline/
+- io/
+- cli/
+
+3. It avoids premature surface area.
+No dashboard, API, notebooks, or ML attack layer until the entropy pipeline
+itself is real and tested.
+
+4. It still leaves a clean upgrade path.
+Later additions can be reintroduced without restructuring the core package.
