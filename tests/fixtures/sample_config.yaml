@@ -1,0 +1,7 @@
+mode: batch
+experiment:
+  base_dir: data/experiments
+sources:
+  enabled:
+    - cpu_jitter
+    - scheduler_jitter

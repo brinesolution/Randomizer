@@ -5,12 +5,25 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "randomiser"
 version = "0.1.0"
-description = "Multi-source entropy OTP generator and evaluation lab"
+description = "Multi-source entropy OTP generator with batch and web modes"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "ManniAndBinni" }]
 dependencies = [
+    "numpy",
+    "opencv-python",
+    "sounddevice",
     "streamlit",
     "pandas",
     "pyyaml",
 ]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

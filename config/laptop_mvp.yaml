@@ -1,0 +1,14 @@
+mode: batch
+project_name: randomiser
+environment: development
+experiment:
+  base_dir: data/experiments
+  save_source_inputs: true
+  save_output_index: true
+sources:
+  enabled:
+    - camera
+    - microphone
+    - cpu_jitter
+    - scheduler_jitter
+  min_healthy_sources: 2
