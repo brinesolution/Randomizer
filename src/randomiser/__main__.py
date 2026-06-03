@@ -1,9 +1,7 @@
-"""Package entrypoint for Randomiser."""
+from __future__ import annotations
 
-
-def main() -> None:
-    print("Randomiser scaffold is set up.")
+from randomiser.cli.app import main
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

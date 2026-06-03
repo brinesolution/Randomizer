@@ -32,3 +32,25 @@ run_000001,batch,input/camera/run_000001.bin,input/microphone/run_000001.bin,inp
 ```
 
 Both web mode and batch mode write through the same experiment storage contract.
+
+`manifest.json` contains:
+
+- `experiment_id`
+- `mode`
+- `config_name`
+- `started_at`
+- `source_names`
+
+`output/run_index.csv` columns:
+
+- `run_id`
+- `mode`
+- `camera_input_file`
+- `microphone_input_file`
+- `cpu_jitter_input_file`
+- `scheduler_jitter_input_file`
+- `otp`
+- `status`
+- `created_at`
+
+Only enabled source files are populated. Missing source columns remain empty so the CSV shape is stable across degraded or source-specific runs.

@@ -18,10 +18,10 @@ COMPLETION BOOKMARKS
 [DONE] Stage 2 - Entropy source interface and raw source collectors
 [DONE] Stage 3 - Feature extraction and source health gate
 [DONE] Stage 4 - Hashing, fusion, conditioning, and OTP generation
-[ 70% ] Stage 5 - Experiment storage input/output contract
-[ 80% ] Stage 6 - Entropy manager and batch mode
-[ 88% ] Stage 7 - CLI commands and terminal scripts
-[ 94% ] Stage 8 - Integration tests, docs, and cleanup
+[DONE] Stage 5 - Experiment storage input/output contract
+[DONE] Stage 6 - Entropy manager and batch mode
+[DONE] Stage 7 - CLI commands and terminal scripts
+[DONE] Stage 8 - Integration tests, docs, and cleanup
 [100% ] Stage 9 - Web app visual mode
 
 Update rule:
@@ -615,6 +615,38 @@ Tests/checks:
 Done when:
 A fake run writes four source files and one output CSV row using the same run_id.
 
+Stage 5 work log:
+- Wrote tests/unit/test_experiment_store.py for experiment id/run id naming, source input paths, experiment folders, and manifest JSON.
+  Why:
+  storage needs a fixed contract before batch and CLI modes start writing real runs.
+- Wrote tests/unit/test_run_logger.py for saving four source files and one output CSV row with the same run_id.
+  Why:
+  each run must preserve the link between source inputs and generated OTP output.
+- Wrote tests/integration/test_dataset_generation.py for a complete fake experiment dataset.
+  Why:
+  the project needs an end-to-end storage check using the planned data/experiments layout.
+- Implemented src/randomiser/io/artifact_namer.py.
+  Why:
+  experiment ids, run ids, and source input paths need one stable naming source.
+- Implemented src/randomiser/io/experiment_store.py and manifest_writer.py.
+  Why:
+  experiment folders and manifest metadata must be created consistently for batch and web modes.
+- Implemented src/randomiser/io/input_store.py and output_index.py.
+  Why:
+  raw source bytes and output CSV rows need focused writers with the planned folder and column names.
+- Implemented src/randomiser/io/csv_writer.py and run_logger.py.
+  Why:
+  repeated runs need append-safe CSV output and one high-level writer that saves inputs and output together.
+- Updated src/randomiser/io/__init__.py with stable Stage 5 exports.
+  Why:
+  later manager, batch, CLI, and web stages should call public IO functions directly.
+
+Stage 5 verification:
+- pytest tests/unit/test_experiment_store.py -q -> PASS
+- pytest tests/unit/test_run_logger.py -q -> PASS
+- pytest tests/integration/test_dataset_generation.py -q -> PASS
+- pytest -q -> PASS
+
 
 ======================================================================
 STAGE 6 - ENTROPY MANAGER AND BATCH MODE - 80% TO 88%
@@ -672,6 +704,40 @@ Tests/checks:
 Done when:
 Batch mode can generate many runs without stopping and write structured experiment data.
 
+Stage 6 work log:
+- Wrote tests/integration/test_collect_all_sources.py to collect camera, microphone, CPU jitter, and scheduler jitter from the real laptop once.
+  Why:
+  Stage 6 needs proof that the collector can coordinate all real source objects without fake backends.
+- Wrote tests/integration/test_generate_100_otps.py for a 100-run CPU/scheduler batch that saves output rows and source input files.
+  Why:
+  batch mode must run continuously and persist every run using the Stage 5 storage contract.
+- Implemented src/randomiser/pipeline/run_context.py.
+  Why:
+  each run needs one shared run_id, mode, experiment_id, timestamp, and config hash.
+- Implemented src/randomiser/pipeline/parallel_collector.py.
+  Why:
+  enabled sources should collect concurrently and return structured collection errors.
+- Implemented src/randomiser/pipeline/entropy_manager.py.
+  Why:
+  source collection, feature extraction, health gating, fusion, conditioning, and OTP generation need one orchestration point.
+- Implemented src/randomiser/pipeline/warmup.py and calibration.py.
+  Why:
+  later CLI and batch stages need source readiness and quick health summaries.
+- Implemented src/randomiser/modes/batch_mode.py.
+  Why:
+  long-running terminal mode needs to create an experiment, generate repeated OTP runs, and save matching source inputs/output rows.
+- Implemented src/randomiser/modes/web_mode.py.
+  Why:
+  the future web UI needs a backend one-run function that reuses the same pipeline and storage code.
+- Updated src/randomiser/pipeline/__init__.py and src/randomiser/modes/__init__.py.
+  Why:
+  Stage 7 and Stage 9 should import stable public functions rather than implementation internals.
+
+Stage 6 verification:
+- pytest tests/integration/test_collect_all_sources.py -q -> PASS
+- pytest tests/integration/test_generate_100_otps.py -q -> PASS
+- pytest -q -> PASS
+
 
 ======================================================================
 STAGE 7 - CLI COMMANDS AND TERMINAL SCRIPTS - 88% TO 94%
@@ -721,6 +787,38 @@ Tests/checks:
 Done when:
 The project can be run from VS Code terminal without web mode.
 
+Stage 7 work log:
+- Wrote tests/unit/test_cli_app.py for CLI help, run-once experiment output, and inspect-experiment summary.
+  Why:
+  command behavior should be verified before wiring terminal scripts.
+- Implemented src/randomiser/cli/app.py.
+  Why:
+  the project needs one argparse entrypoint for run-once, batch, calibrate, and inspect-experiment commands.
+- Implemented src/randomiser/cli/run_once_cmd.py.
+  Why:
+  CLI mode needs to generate one OTP, create an experiment folder, save source inputs, and write one output row.
+- Implemented src/randomiser/cli/generate_dataset_cmd.py.
+  Why:
+  batch generation needs command-line control over config, run count, experiment id, and output root.
+- Implemented src/randomiser/cli/calibrate_cmd.py and inspect_experiment_cmd.py.
+  Why:
+  terminal users need source readiness checks and quick experiment summaries.
+- Updated scripts/run_once.py, scripts/generate_dataset.py, and scripts/calibrate_sources.py as thin wrappers.
+  Why:
+  VS Code terminal runs should call the same CLI logic instead of duplicating pipeline code.
+- Updated src/randomiser/__main__.py and src/randomiser/cli/__init__.py.
+  Why:
+  python -m randomiser should route to the CLI and expose stable CLI imports.
+
+Stage 7 verification:
+- pytest tests/unit/test_cli_app.py -q -> PASS
+- python scripts/run_once.py --config config/cpu_scheduler_only.yaml -> PASS
+- python scripts/generate_dataset.py --config config/cpu_scheduler_only.yaml --runs 100 -> PASS
+- Verified E:\Randomiser\data\experiments\exp_20260603_211554\output\run_index.csv has 100 rows.
+- python -m randomiser --help -> PASS
+- python -m randomiser inspect-experiment E:\Randomiser\data\experiments\exp_20260603_211554 -> PASS
+- pytest -q -> PASS
+
 
 ======================================================================
 STAGE 8 - INTEGRATION TESTS, DOCS, AND CLEANUP - 94% TO 98%
@@ -768,6 +866,35 @@ Tests/checks:
 
 Done when:
 Batch MVP is stable, documented, and clean enough to show.
+
+Stage 8 work log:
+- Added tests/conftest.py fixtures for fixed timestamps, temporary experiment roots, and fake source samples.
+  Why:
+  later tests need reusable experiment and sample setup instead of repeating local helpers.
+- Updated tests/integration/test_dataset_generation.py to use shared fixtures and assert final source-file CSV columns.
+  Why:
+  the storage integration test should verify the complete input/output contract used by batch and web modes.
+- Wrote docs/project_overview.md.
+  Why:
+  the MVP needs a simple description of project purpose, modes, and backend flow.
+- Wrote docs/architecture.md.
+  Why:
+  future development should keep responsibilities separated across core, sources, pipeline, io, modes, and cli.
+- Wrote docs/algorithm_hg_msef.md.
+  Why:
+  source hashing, health gating, fusion, and conditioning need a clear project explanation.
+- Wrote docs/entropy_sources.md and docs/source_health_tests.md.
+  Why:
+  source behavior, real hardware expectations, and broad health checks need to be documented before web mode.
+- Wrote docs/otp_generation.md, docs/dataset_schema.md, and docs/limitations.md.
+  Why:
+  OTP formatting, experiment data layout, and non-production limits need to be explicit for the MVP.
+
+Stage 8 verification:
+- pytest tests/integration/test_dataset_generation.py -q -> PASS
+- pytest -q -> PASS
+- python -m randomiser --help -> PASS
+- rg -n "\bAI\b|assistant|generated by" src scripts apps tests --glob '!**/__pycache__/**' -> NO MATCHES
 
 
 ======================================================================

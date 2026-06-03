@@ -1,0 +1,123 @@
+from __future__ import annotations
+
+from collections.abc import Iterable
+
+from randomiser.core.constants import DEFAULT_MIN_HEALTHY_SOURCES
+from randomiser.core.enums import HealthStatus, RunMode, RunStatus
+from randomiser.core.models import HealthResult, OtpRunResult, PipelineTraceStep, SourceFeatures
+from randomiser.pipeline.conditioner import condition_fused_bytes
+from randomiser.pipeline.degraded_mode import decide_run_status
+from randomiser.pipeline.features import extract_features
+from randomiser.pipeline.health_gate import evaluate_source_health
+from randomiser.pipeline.hg_msef import fuse_healthy_sources
+from randomiser.pipeline.otp_generator import generate_six_digit_otp
+from randomiser.pipeline.parallel_collector import CollectionResult, collect_sources
+from randomiser.pipeline.run_context import RunContext
+from randomiser.sources.base import EntropySource
+
+
+class EntropyManager:
+    def __init__(
+        self,
+        sources: Iterable[EntropySource],
+        *,
+        min_required_sources: int = DEFAULT_MIN_HEALTHY_SOURCES,
+    ) -> None:
+        self.sources = list(sources)
+        self.min_required_sources = min_required_sources
+
+    def generate_once(self, context: RunContext) -> OtpRunResult:
+        collection = collect_sources(self.sources, context.run_id)
+        return self.generate_from_collection(context, collection)
+
+    def generate_once_with_samples(self, context: RunContext):
+        collection = collect_sources(self.sources, context.run_id)
+        return self.generate_from_collection(context, collection), collection.samples
+
+    def generate_from_collection(self, context: RunContext, collection: CollectionResult) -> OtpRunResult:
+        features: dict[str, SourceFeatures] = {}
+        health: dict[str, HealthResult] = {}
+        trace: list[PipelineTraceStep] = []
+
+        trace.append(
+            PipelineTraceStep(
+                name="source_collection",
+                status=RunStatus.OK if not collection.errors else RunStatus.DEGRADED,
+                message=f"collected {len(collection.samples)} source samples",
+                metrics={"errors": dict(collection.errors)},
+            )
+        )
+
+        for sample in collection.samples:
+            source_features = extract_features(sample)
+            source_health = evaluate_source_health(sample, source_features)
+            features[sample.source_name.value] = source_features
+            health[sample.source_name.value] = source_health
+
+        for source_name, message in collection.errors.items():
+            health[source_name] = HealthResult(
+                source_name=next(source.name for source in self.sources if source.name.value == source_name),
+                status=HealthStatus.FAIL,
+                score=0.0,
+                reasons=[f"collection failed: {message}"],
+            )
+
+        run_status = decide_run_status(health.values(), min_required_sources=self.min_required_sources)
+        trace.append(
+            PipelineTraceStep(
+                name="health_gate",
+                status=run_status,
+                message=f"{sum(1 for item in health.values() if item.status is HealthStatus.PASS)} healthy sources",
+                metrics={"min_required_sources": self.min_required_sources},
+            )
+        )
+
+        otp = ""
+        if run_status is not RunStatus.FAILED:
+            fused = fuse_healthy_sources(
+                collection.samples,
+                health,
+                run_id=context.run_id,
+                context={
+                    "experiment_id": context.experiment_id,
+                    "mode": context.mode.value,
+                    "config_hash": context.config_hash,
+                },
+            )
+            conditioned = condition_fused_bytes(
+                fused,
+                run_id=context.run_id,
+                context={
+                    "experiment_id": context.experiment_id,
+                    "mode": context.mode.value,
+                    "config_hash": context.config_hash,
+                },
+            )
+            otp = generate_six_digit_otp(conditioned)
+            trace.extend(
+                [
+                    PipelineTraceStep("source_fusion", RunStatus.OK, "fused healthy source hashes"),
+                    PipelineTraceStep("conditioning", RunStatus.OK, "conditioned fused bytes"),
+                    PipelineTraceStep("otp_generation", RunStatus.OK, "generated six digit OTP"),
+                ]
+            )
+
+        return OtpRunResult(
+            run_id=context.run_id,
+            mode=context.mode,
+            otp=otp,
+            status=run_status,
+            health=health,
+            features=features,
+            trace=trace,
+            created_at=context.created_at,
+        )
+
+
+def generate_once(
+    sources: Iterable[EntropySource],
+    context: RunContext,
+    *,
+    min_required_sources: int = DEFAULT_MIN_HEALTHY_SOURCES,
+) -> OtpRunResult:
+    return EntropyManager(sources, min_required_sources=min_required_sources).generate_once(context)
