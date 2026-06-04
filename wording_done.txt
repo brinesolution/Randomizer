@@ -1139,3 +1139,27 @@ Verification:
 - Desktop and mobile transformation visual inspection -> PASS.
 - Full pytest suite -> PASS, 49 passed.
 - JavaScript syntax, Python compilation, and diff whitespace checks -> PASS.
+
+
+======================================================================
+GITHUB README UPDATE
+======================================================================
+
+What changed:
+- Rewrote the root README for GitHub with the project idea, pipeline, working
+  web and batch commands, installation, experiment storage, privacy warning,
+  code layout, configuration, limitations, and documentation links.
+- Added docs/assets/randomiser-web-demo.png from a real transformation run.
+- Added a matching demo result and output CSV row without publishing camera or
+  microphone evidence.
+
+Why:
+- The previous README described working features as planned and pointed to the
+  old Streamlit command.
+- A public README should explain the project clearly and show a real result.
+
+Verification:
+- README Markdown links and demo image paths -> PASS.
+- Working CLI help and documented commands checked -> PASS.
+- Markdown whitespace check -> PASS.
+- Full pytest suite -> PASS, 49 passed.
