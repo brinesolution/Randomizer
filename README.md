@@ -1,127 +1,179 @@
 # Randomiser
 
-Randomiser is a Python and Node.js application that turns noisy laptop signals
-into a reusable 512-bit seed.
+Randomiser collects small variations already present on a laptop and turns
+them into a reusable 512-bit seed. The seed can then produce an OTP, a terrain
+map, or a maze without collecting the sources again.
 
-It collects data from a camera, microphone, CPU timing loop, and scheduler
-timing threads. Each source is measured before it is accepted. Healthy sources
-are hashed separately, fused in a stable order, and conditioned with SHA-512.
+The project has two useful sides:
 
-After the seed is saved, the user chooses what it creates:
+- a live web report for seeing what happens during one run;
+- a terminal batch mode for collecting many runs into structured experiment
+  folders.
 
-- a six-digit OTP generated with rejection sampling;
-- a five-color terrain map;
-- a fixed 30 by 30 perfect maze with a closed outer boundary.
-
-The source pipeline runs once. All selected outputs are deterministic
-derivations of that same seed.
+The camera, microphone, CPU timing loop, and scheduler timing threads all use
+real laptop hardware or operating-system behavior. Every source is measured
+before it can enter the seed.
 
 > [!WARNING]
 > Randomiser is not a certified hardware random number generator, true random
 > number generator, or security service. Do not use it to protect real
-> accounts, money, or secrets.
+> accounts, money, production systems, or secrets.
 
-## Demo
+## Results
 
-The web report explains the live source process, stops at the master seed, and
-then offers OTP, map, and maze output controls.
+One saved seed can create all three outputs. Each output receives its own
+domain-separated child seed, so generating one does not consume or alter the
+others.
 
-<img src="docs/assets/randomiser-web-demo.png" alt="Randomiser output desk showing a reusable master seed and generated five-color terrain map" width="100%">
+<table>
+  <tr>
+    <th width="33%">Six-digit OTP</th>
+    <th width="33%">Five-color terrain map</th>
+    <th width="33%">30 x 30 perfect maze</th>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/otp-result.png" alt="Generated OTP with rejection-sampling figure"></td>
+    <td><img src="docs/assets/map-result.png" alt="Generated five-color terrain map"></td>
+    <td><img src="docs/assets/maze-result.png" alt="Generated fixed 30 by 30 maze"></td>
+  </tr>
+  <tr>
+    <td>Leading zeros are preserved. Rejection sampling avoids simple modulo bias.</td>
+    <td>Deep ocean, shallow ocean, beach, land, and highland form a deterministic 48 x 48 grid.</td>
+    <td>The maze is connected, has one route between any two cells, and keeps every outside wall closed.</td>
+  </tr>
+</table>
 
-## Pipeline
+## How one run works
 
 ```mermaid
 flowchart LR
-    A[Camera] --> E[Features and health gate]
+    A[Camera] --> E[Feature extraction]
     B[Microphone] --> E
     C[CPU jitter] --> E
     D[Scheduler jitter] --> E
-    E --> F[Hash accepted sources]
-    F --> G[HG-MSEF stable ordered fusion]
-    G --> H[SHA-512 conditioning]
-    H --> I[512-bit master seed]
-    I --> J[OTP]
-    I --> K[Five-color map]
-    I --> L[30x30 maze]
+    E --> F[Health gate]
+    F --> G[Hash accepted sources]
+    G --> H[HG-MSEF stable-order fusion]
+    H --> I[SHA-512 conditioning]
+    I --> J[512-bit master seed]
+    J --> K[OTP child seed]
+    J --> L[Map child seed]
+    J --> M[Maze child seed]
 ```
 
-### Seed creation
+1. The four collectors run in parallel and return byte streams with metadata.
+2. Randomiser measures each source and rejects obvious failures.
+3. Each accepted source is hashed independently with its identity and run
+   context.
+4. HG-MSEF sorts the source hashes by source name and fuses them with SHA-512.
+5. A separate SHA-512 conditioning pass produces the 64-byte master seed.
+6. The user chooses an output. Randomiser derives an isolated child seed for
+   that output and saves the result as JSON.
 
-1. Collect real bytes from the four laptop sources.
-2. Calculate byte diversity, bit balance, Shannon entropy, and
-   autocorrelation.
-3. Mark each source as `pass`, `warn`, or `fail`.
-4. Hash each accepted source with its identity, run ID, bytes, and metadata.
-5. Fuse accepted hashes in stable source-name order with the run context.
-6. Apply final SHA-512 conditioning and save the resulting 512-bit seed.
+The source pipeline stops at the master seed. OTP generation is not part of
+seed creation.
 
-### Output generation
+## Source collection
 
-Each output receives its own domain-separated child seed. Generating a map does
-not consume or change the seed used for an OTP or maze.
+| Source | What is collected | Bytes passed to the pipeline |
+| --- | --- | --- |
+| Camera | One OpenCV frame | Frame channels are averaged to grayscale, then the lowest two bits of each pixel are packed into bytes. |
+| Microphone | Signed 16-bit audio samples | Adjacent sample deltas are calculated, then their lowest two bits are packed into bytes. |
+| CPU jitter | `perf_counter_ns()` timing differences around a small CPU loop | The low byte of each timing delta. |
+| Scheduler jitter | Timing differences from threads repeatedly yielding with `sleep(0)` | The low byte of each scheduling delta. |
 
-- **OTP:** six digits with leading zeros preserved. Rejection sampling avoids
-  simple modulo bias.
-- **Map:** a deterministic 48 by 48 terrain grid using deep ocean, shallow
-  ocean, beach, land, and highland.
-- **Maze:** a deterministic perfect maze with exactly 30 by 30 cells, closed
-  outside walls, and opposite-corner start and end cells.
+The full camera frame and microphone recording are retained for the web
+report. The experiment input folders store the exact byte streams used by the
+pipeline.
 
-## Web mode
+## Health gate
 
-Web mode reveals each source and seed-creation stage as the backend completes
-it. Afterward, the same seed can generate any of the three outputs without
-collecting the laptop sources again.
+Randomiser calculates byte count, unique-byte count, bit balance, Shannon
+entropy, and lag-1 autocorrelation for each source. The current gate rejects a
+source when any of these checks fail:
 
-```powershell
-python scripts/run_web.py
+| Check | Current requirement |
+| --- | --- |
+| Non-empty | At least one byte |
+| Non-constant | More than one distinct byte |
+| Byte diversity | At least 4 distinct byte values |
+| Bit balance | Between `0.20` and `0.80` |
+| Shannon entropy estimate | At least `1.0` bits per byte |
+
+Autocorrelation is recorded and displayed but is not currently a pass/fail
+threshold. The default laptop configuration needs at least two healthy
+sources. A run with too few healthy sources produces no seed.
+
+These checks catch obvious collection problems. They do not prove
+cryptographic entropy.
+
+## Seed construction
+
+Randomiser uses separate domain labels for source hashing, fusion,
+conditioning, and output derivation.
+
+```text
+source bytes + source name + run ID + metadata digest
+    -> randomiser.source_hash.v1
+
+stable ordered source hashes + run context
+    -> randomiser.hg_msef.v1
+
+fused digest + run context
+    -> randomiser.conditioner.v1
+    -> 512-bit master seed
+
+master seed + output namespace
+    -> randomiser.output.v1
+    -> isolated OTP, map, or maze child seed
 ```
 
-Open `http://localhost:4173`.
+The source-name ordering makes fusion reproducible for the same source hashes
+and run context. Domain separation prevents a child seed intended for one
+output type from being reused by another.
 
-The browser interface is served by Node.js. Source collection, seed creation,
-output generation, and storage run in Python.
+## Output algorithms
 
-## Terminal and batch modes
+### OTP
 
-Generate and save one seed:
+The OTP generator reads 32-bit candidates from the OTP child seed. Candidates
+outside the largest evenly divisible range are rejected before the accepted
+value is reduced to six digits. The saved JSON includes the selected
+candidate, acceptance limit, inspected count, final value, and child-seed
+hash.
 
-```powershell
-python scripts/run_once.py --config config/laptop_mvp.yaml
-```
+### Terrain map
 
-Generate one seed and a selected output:
+The map generator expands the map child seed into a 48 x 48 byte field,
+smooths the field over six rounds, and divides the elevation values into five
+quantile-based terrain categories:
 
-```powershell
-python scripts/run_once.py --config config/laptop_mvp.yaml --output-kind map
-```
+| Index | Terrain | Color |
+| ---: | --- | --- |
+| 0 | Deep ocean | `#075985` |
+| 1 | Shallow ocean | `#38bdf8` |
+| 2 | Beach | `#e7d3a1` |
+| 3 | Land | `#65a30d` |
+| 4 | Highland | `#166534` |
 
-Generate many seeds:
+### Maze
 
-```powershell
-python scripts/generate_dataset.py --config config/batch_run.yaml --runs 100
-```
+The maze generator uses deterministic randomized depth-first search over a
+fixed 30 x 30 grid. Every cell begins with four walls. The generator removes
+walls while visiting unvisited neighbors, leaving a connected perfect maze
+with `899` passages and a closed outside boundary.
 
-Generate a maze for every batch seed:
+The start cell is the top-left corner and the end cell is the bottom-right
+corner.
 
-```powershell
-python scripts/generate_dataset.py --config config/batch_run.yaml --runs 100 --output-kind maze
-```
-
-Check the real source devices before a longer run:
-
-```powershell
-python scripts/calibrate_sources.py --config config/laptop_mvp.yaml
-```
-
-## Installation
+## Run it locally
 
 Requirements:
 
 - Python 3.11 or newer
 - Node.js
-- A working camera and microphone
-- Operating-system permission to access those devices
+- a working camera and microphone
+- operating-system permission to access those devices
 
 ```powershell
 git clone https://github.com/brinesolution/Randomizer.git
@@ -130,8 +182,81 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e .
-pytest -q
 ```
+
+Check the four sources before starting:
+
+```powershell
+python scripts/calibrate_sources.py --config config/laptop_mvp.yaml
+```
+
+Start the web report:
+
+```powershell
+python scripts/run_web.py
+```
+
+Open `http://localhost:4173` and press **Start live source run**.
+
+## Terminal and batch usage
+
+Generate and save one seed:
+
+```powershell
+python scripts/run_once.py --config config/laptop_mvp.yaml
+```
+
+Generate one seed and save a selected output:
+
+```powershell
+python scripts/run_once.py --config config/laptop_mvp.yaml --output-kind otp
+python scripts/run_once.py --config config/laptop_mvp.yaml --output-kind map
+python scripts/run_once.py --config config/laptop_mvp.yaml --output-kind maze
+```
+
+Run a larger experiment:
+
+```powershell
+python scripts/generate_dataset.py --config config/batch_run.yaml --runs 10000
+```
+
+Generate one maze for every saved batch seed:
+
+```powershell
+python scripts/generate_dataset.py --config config/batch_run.yaml --runs 10000 --output-kind maze
+```
+
+Inspect a saved experiment:
+
+```powershell
+python -m randomiser inspect-experiment data/experiments/<experiment_id>
+```
+
+## Web API
+
+The Node.js server exposes a small local API backed by the Python pipeline.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Check whether the local web server is running. |
+| `GET` | `/api/run-stream` | Run the source pipeline and stream completed stages as server-sent events. |
+| `POST` | `/api/run` | Run the source pipeline and return one completed seed report. |
+| `POST` | `/api/generate` | Generate and save one selected output from an existing saved seed. |
+| `GET` | `/artifacts/<experiment_id>/...` | Read a saved experiment artifact. |
+
+Example output request:
+
+```json
+{
+  "kind": "map",
+  "seed": "<128-character hexadecimal seed>",
+  "experimentId": "exp_...",
+  "runId": "run_000001"
+}
+```
+
+The generation endpoint verifies that the experiment and run exist and that
+the supplied seed matches the saved `run_index.csv` row.
 
 ## Saved experiments
 
@@ -155,49 +280,69 @@ data/experiments/<experiment_id>/
   logs/
 ```
 
-`run_index.csv` ties every source input to the saved master seed and run
-status. Selected outputs are stored separately under the same run ID.
+`run_index.csv` connects the four source input filenames, master seed, run
+status, mode, and timestamp. All files created by one run share the same
+`run_id`.
 
 > [!CAUTION]
 > Experiment folders can contain private camera frames, microphone recordings,
 > and device timing data. Review them before sharing or committing them.
 
-## Project layout
+## Project structure
 
 ```text
 apps/web/                   Node server and browser interface
 config/                     Source and run-mode configuration
-docs/                       Architecture and algorithm notes
+docs/                       Architecture, algorithm, and schema notes
 scripts/                    Web, batch, calibration, and one-run commands
-src/randomiser/core/        Shared models, configuration, and hashing
-src/randomiser/sources/     Laptop source collectors
-src/randomiser/pipeline/    Health checks, fusion, and seed creation
-src/randomiser/generators/  OTP, terrain map, and maze generators
+src/randomiser/core/        Shared models, configuration, paths, and hashing
+src/randomiser/integrations Hardware adapters for camera and microphone
+src/randomiser/sources/     Source collection and byte transformation
+src/randomiser/pipeline/    Health gate, source hashing, fusion, and conditioning
+src/randomiser/generators/  OTP, terrain-map, and maze generation
 src/randomiser/io/          Experiment and generated-output storage
 src/randomiser/modes/       Batch and web backend workflows
 src/randomiser/trace/       Display-ready pipeline visualization data
 tests/                      Unit and integration tests
 ```
 
-## Design notes
+`EntropyManager` owns source collection through master-seed creation.
+Generators only accept a saved seed. This boundary keeps collection,
+validation, and procedural generation independently testable.
 
-- The entropy pipeline owns seed creation only.
-- Output generators never recollect sources or repeat the health gate.
-- Child seeds are domain separated by output kind.
-- A failed health gate produces no seed and disables output generation.
-- The map palette is intentionally limited to five colors.
-- The maze dimensions and outside boundary are fixed by contract.
+## Tests
 
-## Further reading
+```powershell
+pytest -q
+```
 
-- [Project overview](docs/project_overview.md)
+The suite covers source transformations, feature extraction, health checks,
+fusion and conditioning, storage contracts, CLI behavior, deterministic
+output generation, map palette limits, maze connectivity, and closed maze
+boundaries. Integration tests also exercise the real laptop sources.
+
+## Limitations
+
+- Source quality depends on the laptop, drivers, operating-system scheduling,
+  environment, and current system load.
+- The health gate detects broad failures but does not estimate min-entropy or
+  provide formal statistical certification.
+- SHA-512 conditions the collected bytes; it cannot create entropy that was
+  not present in the inputs.
+- Maps and mazes are deterministic demonstrations, not simulation-grade
+  procedural generation.
+- The project has not received an external cryptographic or security audit.
+
+More detail is available in [docs/limitations.md](docs/limitations.md).
+
+## Documentation
+
 - [Architecture](docs/architecture.md)
 - [HG-MSEF fusion](docs/algorithm_hg_msef.md)
 - [Entropy sources](docs/entropy_sources.md)
 - [Source health tests](docs/source_health_tests.md)
 - [OTP generation](docs/otp_generation.md)
 - [Dataset schema](docs/dataset_schema.md)
-- [Limitations](docs/limitations.md)
 
 ## License
 
