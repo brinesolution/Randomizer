@@ -1,8 +1,0 @@
-numpy
-opencv-python
-sounddevice
-streamlit
-pandas
-pyyaml
-pytest
-ruff
