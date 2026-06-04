@@ -38,7 +38,7 @@ others.
   </tr>
   <tr>
     <td>Leading zeros are preserved. Rejection sampling avoids simple modulo bias.</td>
-    <td>Deep ocean, shallow ocean, beach, land, and highland form a deterministic 48 x 48 grid.</td>
+    <td>Deep ocean, shallow ocean, beach, land, and highland form a deterministic 512 x 512 grid.</td>
     <td>The maze is connected, has one route between any two cells, and keeps every outside wall closed.</td>
   </tr>
 </table>
@@ -144,9 +144,11 @@ hash.
 
 ### Terrain map
 
-The map generator expands the map child seed into a 48 x 48 byte field,
-smooths the field over six rounds, and divides the elevation values into five
-quantile-based terrain categories:
+The map generator expands the map child seed into three deterministic noise
+layers. Large, medium, and detail layers are resized with bilinear
+interpolation, blended into a 512 x 512 elevation field, and divided into five
+quantile-based terrain categories. The web app draws the result on one canvas
+instead of creating 262,144 separate page elements.
 
 | Index | Terrain | Color |
 | ---: | --- | --- |

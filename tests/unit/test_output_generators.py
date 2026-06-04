@@ -26,8 +26,10 @@ def test_terrain_map_is_deterministic_and_uses_five_declared_categories() -> Non
     second = generate_terrain_map(MASTER_SEED)
 
     assert first == second
-    assert first["width"] == 48
-    assert first["height"] == 48
+    assert first["width"] == 512
+    assert first["height"] == 512
+    assert len(first["cells"]) == 512
+    assert all(len(row) == 512 for row in first["cells"])
     assert len(first["palette"]) == 5
     assert {item["name"] for item in first["palette"]} == {
         "deep_ocean",
@@ -37,6 +39,26 @@ def test_terrain_map_is_deterministic_and_uses_five_declared_categories() -> Non
         "highland",
     }
     assert {cell for row in first["cells"] for cell in row} == {0, 1, 2, 3, 4}
+
+
+def test_terrain_map_forms_coherent_regions_at_high_resolution() -> None:
+    terrain_map = generate_terrain_map(MASTER_SEED)
+    cells = terrain_map["cells"]
+    height = terrain_map["height"]
+    width = terrain_map["width"]
+
+    matching_neighbors = sum(
+        cells[row][column] == cells[row][column + 1]
+        for row in range(height)
+        for column in range(width - 1)
+    ) + sum(
+        cells[row][column] == cells[row + 1][column]
+        for row in range(height - 1)
+        for column in range(width)
+    )
+    neighbor_pairs = height * (width - 1) + (height - 1) * width
+
+    assert matching_neighbors / neighbor_pairs > 0.85
 
 
 def test_maze_is_fixed_connected_perfect_and_has_closed_outer_boundary() -> None:

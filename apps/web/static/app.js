@@ -450,16 +450,40 @@ function renderOtpOutput(payload, artifact) {
 }
 
 function renderMapOutput(payload, artifact) {
-  const colors = Object.fromEntries(payload.palette.map((item) => [item.index, item.color]));
-  const cells = payload.cells.flat().map((cell) => `<i style="background:${escapeHtml(colors[cell])}"></i>`).join("");
   const legend = payload.palette.map((item) => `<span><i style="background:${escapeHtml(item.color)}"></i>${escapeHtml(item.label)}</span>`).join("");
   return `<article class="selected-output">
     <div><p class="section-label">Selected output / Map</p><h3>Five-color terrain map</h3>
       <p>A deterministic ${payload.width} by ${payload.height} terrain field derived from the saved seed.</p></div>
-    <div class="terrain-map" style="--map-columns:${payload.width}" role="img" aria-label="Generated terrain map">${cells}</div>
+    <canvas id="terrainMapCanvas" class="terrain-map" width="${payload.width}" height="${payload.height}" role="img" aria-label="Generated ${payload.width} by ${payload.height} terrain map"></canvas>
     <div class="terrain-legend">${legend}</div>
     <a class="artifact-link" href="${escapeHtml(artifact)}">Open saved map JSON</a>
   </article>`;
+}
+
+function drawTerrainMap(payload) {
+  const canvas = document.querySelector("#terrainMapCanvas");
+  const context = canvas?.getContext("2d");
+  if (!context) return;
+
+  const colors = Object.fromEntries(payload.palette.map((item) => {
+    const value = item.color.slice(1);
+    return [item.index, [
+      Number.parseInt(value.slice(0, 2), 16),
+      Number.parseInt(value.slice(2, 4), 16),
+      Number.parseInt(value.slice(4, 6), 16),
+    ]];
+  }));
+  const image = context.createImageData(payload.width, payload.height);
+  let offset = 0;
+  payload.cells.forEach((row) => row.forEach((cell) => {
+    const [red, green, blue] = colors[cell];
+    image.data[offset] = red;
+    image.data[offset + 1] = green;
+    image.data[offset + 2] = blue;
+    image.data[offset + 3] = 255;
+    offset += 4;
+  }));
+  context.putImageData(image, 0, 0);
 }
 
 function mazeSvg(payload) {
@@ -515,6 +539,7 @@ async function requestOutput(kind, button) {
       : kind === "map"
         ? renderMapOutput(result.output, result.artifact)
         : renderMazeOutput(result.output, result.artifact);
+    if (kind === "map") drawTerrainMap(result.output);
   } catch (error) {
     outputResult.innerHTML = `<div class="missing-evidence"><p class="section-label">Output generation failed</p><p>${escapeHtml(error.message)}</p></div>`;
   } finally {
