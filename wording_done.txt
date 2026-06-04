@@ -1074,3 +1074,68 @@ Then run:
 pytest tests/unit/test_models.py -q
 
 After that, continue stage by stage from this file.
+
+
+======================================================================
+STAGE 9 EDUCATIONAL WEB REDESIGN UPDATE
+======================================================================
+
+What changed:
+- Added automatic SSE live reveal from real pipeline stage callbacks.
+- Added permanent camera original, grayscale, and low-bit preview files.
+- Added a permanent one-second microphone WAV preview with 0.01x to 2x playback.
+- Added source timing graphs, waveforms, byte-series charts, and histograms.
+- Added health threshold bars, lag-1 scatter plots, and failure evidence.
+- Added exact source-hash, fusion, conditioning, rejection-sampling, and OTP views.
+- Rebuilt the responsive interface using the Newsprint rules in web_design.txt.
+
+Why:
+- Web mode should explain how real source evidence becomes one OTP without
+  duplicating or simulating the production pipeline.
+- Saved previews make each web experiment inspectable after the run finishes.
+
+Key files:
+- src/randomiser/pipeline/entropy_manager.py
+- src/randomiser/trace/web_visuals.py
+- src/randomiser/sources/camera_source.py
+- src/randomiser/sources/microphone_source.py
+- src/randomiser/sources/cpu_jitter_source.py
+- src/randomiser/sources/scheduler_jitter_source.py
+- apps/web/web_api.py
+- apps/web/server.js
+- apps/web/index.html
+- apps/web/static/app.js
+- apps/web/static/css/app.css
+- apps/web/README.md
+
+Verification:
+- Real four-source web run and SSE stage stream -> PASS.
+- Permanent JPG, PNG, and WAV artifact serving -> PASS.
+- Desktop, mobile, health, transformation, and OTP visual inspection -> PASS.
+- Source evidence, observer, and web visual unit tests -> PASS.
+- Full pytest suite -> PASS, 49 passed.
+- Live SSE endpoint -> PASS, 7 ordered stage messages plus final result.
+- Saved camera JPG and microphone WAV HTTP access -> PASS, status 200.
+
+
+======================================================================
+STAGE 9 TRANSFORMATION FIGURES UPDATE
+======================================================================
+
+What changed:
+- Added accepted source-byte to SHA-512 digest byte-strip figures.
+- Added an SVG convergence diagram for stable HG-MSEF source fusion.
+- Added aligned fused and conditioned digest byte heatmaps.
+- Added a rejection-sampling number line with the accepted range, candidate,
+  acceptance boundary, and a clearly labeled magnified rejected tail.
+- Kept all exact full hashes and numeric values visible below the figures.
+
+Why:
+- Figure 3 labels should contain actual visual explanations, not only text.
+- Direct labels and exact values keep the diagrams educational and verifiable.
+
+Verification:
+- Transformation visual payload tests -> PASS.
+- Desktop and mobile transformation visual inspection -> PASS.
+- Full pytest suite -> PASS, 49 passed.
+- JavaScript syntax, Python compilation, and diff whitespace checks -> PASS.

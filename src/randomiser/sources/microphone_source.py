@@ -25,6 +25,7 @@ class MicrophoneSource(EntropySource):
         self.duration_ms = duration_ms
         self.sample_rate = sample_rate
         self.bit_count = bit_count
+        self.last_samples: np.ndarray | None = None
 
     def is_available(self) -> bool:
         return bool(self.backend.is_available())
@@ -37,7 +38,9 @@ class MicrophoneSource(EntropySource):
         if samples is None:
             raise SourceCollectionError("Microphone source returned no samples")
 
-        array = np.asarray(samples, dtype=np.int64).ravel()
+        captured = np.asarray(samples, dtype=np.int16).ravel()
+        self.last_samples = captured.copy()
+        array = captured.astype(np.int64)
         if array.size == 0:
             raise SourceCollectionError("Microphone source returned an empty sample block")
 

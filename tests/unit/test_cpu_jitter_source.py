@@ -44,6 +44,7 @@ def test_cpu_jitter_source_collects_timing_deltas_with_metadata() -> None:
     assert sample.metadata["min_delta_ns"] >= 0
     assert sample.metadata["max_delta_ns"] >= sample.metadata["min_delta_ns"]
     assert sample.metadata["mean_delta_ns"] >= 0
+    assert len(source.last_deltas) == 64
     assert source.is_available() is True
 
 

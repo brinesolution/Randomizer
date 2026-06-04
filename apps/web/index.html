@@ -3,133 +3,132 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Randomiser Flow</title>
+    <title>The Randomiser Record</title>
     <link rel="stylesheet" href="/static/css/app.css" />
     <script type="module" src="/static/app.js"></script>
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to flow</a>
-    <div class="noise" aria-hidden="true"></div>
+    <a class="skip-link" href="#main">Skip to report</a>
 
-    <header class="topbar">
-      <a class="brand" href="#main">RANDOMISER</a>
-      <nav aria-label="Page">
-        <a href="#sources">Sources</a>
-        <a href="#health">Health</a>
-        <a href="#pipeline">Pipeline</a>
-        <a href="#otp">OTP</a>
-      </nav>
-      <span id="statusBadge" class="status-badge idle">Idle</span>
+    <header class="masthead">
+      <div class="edition-line">
+        <span>Vol. 1, No. 1</span>
+        <span id="editionDate">June 4, 2026</span>
+        <span>Laptop Edition</span>
+      </div>
+      <div class="masthead-main">
+        <a class="publication-name" href="#main">The Randomiser Record</a>
+        <nav aria-label="Report sections">
+          <a href="#sources">Sources</a>
+          <a href="#health">Health</a>
+          <a href="#transformation">Transformation</a>
+          <a href="#otp">OTP</a>
+        </nav>
+        <span id="statusBadge" class="status-badge">Idle</span>
+      </div>
     </header>
 
+    <div class="ticker" aria-label="Pipeline stages">
+      <div class="ticker-track">
+        <span>Breaking process</span><b>Source capture</b><b>Feature extraction</b><b>Health gate</b><b>SHA-512 source hashing</b><b>HG-MSEF fusion</b><b>Rejection sampling</b>
+        <span aria-hidden="true">Breaking process</span><b aria-hidden="true">Source capture</b><b aria-hidden="true">Feature extraction</b><b aria-hidden="true">Health gate</b><b aria-hidden="true">SHA-512 source hashing</b><b aria-hidden="true">HG-MSEF fusion</b><b aria-hidden="true">Rejection sampling</b>
+      </div>
+    </div>
+
     <main id="main">
-      <section class="hero" aria-labelledby="heroTitle">
-        <p class="microcopy">Laptop source flow / web mode</p>
-        <h1 id="heroTitle">RANDOMISER<br />FLOW</h1>
-        <div class="hero-grid">
-          <p class="hero-copy">
-            Press start to request camera, microphone, CPU jitter, and scheduler jitter. The page then shows raw source capture, health checks, hashing, fusion, conditioning, rejection sampling, and the final six digit OTP.
+      <section class="hero report-width">
+        <article class="lead-story">
+          <p class="section-label">Special technical report</p>
+          <h1>How laptop noise becomes a six-digit OTP</h1>
+          <p class="standfirst">
+            This live report follows one real run from camera pixels, microphone samples, CPU timing, and scheduler timing through extraction, health checks, cryptographic hashing, fusion, conditioning, and unbiased number selection.
           </p>
-          <button id="startButton" class="primary-action" type="button">
-            Start Source Run
-          </button>
-        </div>
+          <p class="hero-body">
+            <span class="drop-cap">P</span>ress start once. The report automatically opens each section after its backend stage finishes. Original camera and microphone evidence is saved permanently beside the experiment results.
+          </p>
+        </article>
+
+        <aside class="run-desk" aria-labelledby="runDeskTitle">
+          <p class="section-label">Live desk</p>
+          <h2 id="runDeskTitle">Follow the run</h2>
+          <button id="startButton" class="primary-action" type="button">Start live source run</button>
+          <ol id="stageRail" class="stage-rail">
+            <li data-stage="source_collection"><span>01</span> Collect source evidence</li>
+            <li data-stage="source_analysis"><span>02</span> Extract bytes and features</li>
+            <li data-stage="health_gate"><span>03</span> Apply health gate</li>
+            <li data-stage="fusion"><span>04</span> Hash and fuse sources</li>
+            <li data-stage="conditioning"><span>05</span> Condition fused digest</li>
+            <li data-stage="otp_generation"><span>06</span> Select the OTP</li>
+            <li data-stage="experiment_save"><span>07</span> Save experiment report</li>
+          </ol>
+          <p id="reportNotice" class="report-notice" aria-live="polite">Ready to request the four laptop sources.</p>
+        </aside>
       </section>
 
-      <section class="marquee-band accent" aria-label="Flow stages">
-        <div class="marquee-track">
-          <span>REQUEST SOURCES</span>
-          <span>COLLECT BYTES</span>
-          <span>CHECK HEALTH</span>
-          <span>HASH SOURCES</span>
-          <span>FUSE DIGESTS</span>
-          <span>SHOW OTP</span>
-          <span aria-hidden="true">REQUEST SOURCES</span>
-          <span aria-hidden="true">COLLECT BYTES</span>
-          <span aria-hidden="true">CHECK HEALTH</span>
-          <span aria-hidden="true">HASH SOURCES</span>
-          <span aria-hidden="true">FUSE DIGESTS</span>
-          <span aria-hidden="true">SHOW OTP</span>
-        </div>
-      </section>
+      <div class="ornament" aria-hidden="true">✧ ✧ ✧</div>
 
-      <section id="sources" class="section-block">
-        <div class="section-heading">
-          <span class="huge-number" aria-hidden="true">01</span>
+      <section id="sources" class="report-section report-width pending-section" data-reveal="source_collection">
+        <header class="section-header">
           <div>
-            <p class="microcopy">Requested source set</p>
-            <h2>Sources</h2>
+            <p class="section-label">Evidence desk / figures 1.1–1.4</p>
+            <h2>The four source reports</h2>
+          </div>
+          <p>Each report shows the human-readable capture first, then the exact transformation used to obtain the saved entropy byte stream.</p>
+        </header>
+        <div id="sourceGrid" class="source-report-grid">
+          <p class="empty-copy">Source figures appear after collection completes.</p>
+        </div>
+      </section>
+
+      <section id="health" class="report-section report-width pending-section" data-reveal="health_gate">
+        <header class="section-header">
+          <div>
+            <p class="section-label">Quality desk / figures 2.1–2.4</p>
+            <h2>What the health gate measures</h2>
+          </div>
+          <p>Threshold bars, byte distributions, and lag-pair plots reveal whether a source is varied enough to enter fusion.</p>
+        </header>
+        <div id="healthGrid" class="health-report-grid">
+          <p class="empty-copy">Health figures appear after the health gate completes.</p>
+        </div>
+      </section>
+
+      <section id="transformation" class="process-section pending-section" data-reveal="fusion">
+        <div class="report-width">
+          <header class="section-header inverted">
+            <div>
+              <p class="section-label">Inside the algorithm / figures 3.1–3.4</p>
+              <h2>From accepted bytes to one number</h2>
+            </div>
+            <p>Healthy source hashes converge in a stable order, receive final conditioning, and enter rejection sampling without simple modulo bias.</p>
+          </header>
+          <div id="transformationReport" class="transformation-report">
+            <p class="empty-copy">Transformation figures appear after hashing and fusion complete.</p>
           </div>
         </div>
-        <div id="requestGrid" class="request-grid" aria-live="polite">
-          <article class="request-card" data-source="camera">
-            <span>CAMERA</span>
-            <strong>Waiting</strong>
-          </article>
-          <article class="request-card" data-source="microphone">
-            <span>MICROPHONE</span>
-            <strong>Waiting</strong>
-          </article>
-          <article class="request-card" data-source="cpu_jitter">
-            <span>CPU JITTER</span>
-            <strong>Waiting</strong>
-          </article>
-          <article class="request-card" data-source="scheduler_jitter">
-            <span>SCHEDULER JITTER</span>
-            <strong>Waiting</strong>
-          </article>
-        </div>
       </section>
 
-      <section id="health" class="section-block">
-        <div class="section-heading">
-          <span class="huge-number" aria-hidden="true">02</span>
+      <section id="otp" class="otp-section pending-section" data-reveal="otp_generation">
+        <div class="report-width otp-grid">
           <div>
-            <p class="microcopy">Stage 3 metrics</p>
-            <h2>Health Checks</h2>
+            <p class="section-label">Final edition</p>
+            <h2>The generated OTP</h2>
+            <p>The six-digit output preserves leading zeros and is saved with all source inputs under one run ID.</p>
           </div>
-        </div>
-        <div id="sourceGrid" class="source-grid empty-state">
-          <p>Run the flow to see byte counts, balance, entropy, autocorrelation, checks, and saved input paths.</p>
-        </div>
-      </section>
-
-      <section class="marquee-band dark" aria-label="Saved experiment contract">
-        <div class="marquee-track slow">
-          <span>ONE RUN ID</span>
-          <span>FOUR INPUT FOLDERS</span>
-          <span>ONE OUTPUT CSV</span>
-          <span>STRUCTURED EXPERIMENT DATA</span>
-          <span aria-hidden="true">ONE RUN ID</span>
-          <span aria-hidden="true">FOUR INPUT FOLDERS</span>
-          <span aria-hidden="true">ONE OUTPUT CSV</span>
-          <span aria-hidden="true">STRUCTURED EXPERIMENT DATA</span>
-        </div>
-      </section>
-
-      <section id="pipeline" class="section-block">
-        <div class="section-heading">
-          <span class="huge-number" aria-hidden="true">03</span>
-          <div>
-            <p class="microcopy">Stage 4 transformation</p>
-            <h2>Flow Tree</h2>
+          <output id="otpValue" class="otp-value" aria-live="polite">------</output>
+          <div id="savePanel" class="save-panel">
+            <p>Experiment paths appear after the report is saved.</p>
           </div>
-        </div>
-        <div id="traceList" class="trace-list empty-state">
-          <p>The flow tree appears after a source run completes.</p>
-        </div>
-      </section>
-
-      <section id="otp" class="otp-section">
-        <div>
-          <p class="microcopy">Final output</p>
-          <h2>Generated OTP</h2>
-        </div>
-        <output id="otpValue" class="otp-value" aria-live="polite">------</output>
-        <div id="savePanel" class="save-panel">
-          <p>Experiment path and CSV output appear here after the run is saved.</p>
         </div>
       </section>
     </main>
+
+    <footer class="footer">
+      <div class="report-width">
+        <strong>The Randomiser Record</strong>
+        <span>Research and portfolio prototype. Not a certified TRNG or production OTP service.</span>
+        <span>Edition: Vol. 1.0</span>
+      </div>
+    </footer>
   </body>
 </html>

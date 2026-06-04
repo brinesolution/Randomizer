@@ -16,6 +16,7 @@ class CPUJitterSource(EntropySource):
             raise ValueError("iterations must be positive")
         self.iterations = iterations
         self.clock_ns = clock_ns or time.perf_counter_ns
+        self.last_deltas: list[int] = []
 
     def collect(self, run_id: str):
         deltas: list[int] = []
@@ -33,4 +34,5 @@ class CPUJitterSource(EntropySource):
             "max_delta_ns": max(deltas),
             "mean_delta_ns": sum(deltas) / len(deltas),
         }
+        self.last_deltas = list(deltas)
         return self.build_sample(run_id, ints_to_low_byte_stream(deltas), metadata=metadata)

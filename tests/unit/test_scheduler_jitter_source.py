@@ -19,4 +19,6 @@ def test_scheduler_jitter_source_collects_yield_timing_deltas() -> None:
     assert sample.metadata["samples_per_thread"] == 16
     assert sample.metadata["min_delta_ns"] >= 0
     assert sample.metadata["max_delta_ns"] >= sample.metadata["min_delta_ns"]
+    assert len(source.last_deltas) == 32
+    assert len(source.last_thread_deltas) == 2
     assert source.is_available() is True

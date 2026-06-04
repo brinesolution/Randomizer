@@ -17,6 +17,7 @@ class CameraSource(EntropySource):
     def __init__(self, backend: Any | None = None, bit_count: int = 2) -> None:
         self.backend = backend or OpenCVCameraBackend()
         self.bit_count = bit_count
+        self.last_frame: np.ndarray | None = None
 
     def is_available(self) -> bool:
         return bool(self.backend.is_available())
@@ -32,6 +33,7 @@ class CameraSource(EntropySource):
         array = np.asarray(frame)
         if array.size == 0:
             raise SourceCollectionError("Camera source returned an empty frame")
+        self.last_frame = array.copy()
         if array.ndim == 3:
             array = array.mean(axis=2).astype(np.uint8)
 

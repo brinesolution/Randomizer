@@ -16,4 +16,6 @@ def test_microphone_source_collects_from_real_laptop_microphone() -> None:
     assert sample.metadata["duration_ms"] == 50
     assert sample.metadata["sample_count"] > 0
     assert sample.metadata["mean_amplitude"] >= 0
+    assert source.last_samples is not None
+    assert source.last_samples.size == sample.metadata["sample_count"]
     assert source.is_available() is True

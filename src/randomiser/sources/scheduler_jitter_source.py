@@ -27,9 +27,12 @@ class SchedulerJitterSource(EntropySource):
         self.samples_per_thread = samples_per_thread
         self.clock_ns = clock_ns or time.perf_counter_ns
         self.sleep_fn = sleep_fn or time.sleep
+        self.last_deltas: list[int] = []
+        self.last_thread_deltas: list[list[int]] = []
 
     def collect(self, run_id: str):
         deltas: list[int] = []
+        thread_deltas: list[list[int]] = []
         lock = threading.Lock()
 
         def worker() -> None:
@@ -42,6 +45,7 @@ class SchedulerJitterSource(EntropySource):
                 previous = current
             with lock:
                 deltas.extend(local_deltas)
+                thread_deltas.append(local_deltas)
 
         threads = [threading.Thread(target=worker) for _ in range(self.thread_count)]
         for thread in threads:
@@ -56,4 +60,6 @@ class SchedulerJitterSource(EntropySource):
             "max_delta_ns": max(deltas),
             "mean_delta_ns": sum(deltas) / len(deltas),
         }
+        self.last_deltas = list(deltas)
+        self.last_thread_deltas = [list(values) for values in thread_deltas]
         return self.build_sample(run_id, ints_to_low_byte_stream(deltas), metadata=metadata)

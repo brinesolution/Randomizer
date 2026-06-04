@@ -4,6 +4,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +16,11 @@ const contentTypes = {
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".wav": "audio/wav",
+  ".csv": "text/csv; charset=utf-8",
 };
 
 function sendJson(response, status, payload) {
@@ -54,6 +60,59 @@ function runPipeline(response) {
   );
 }
 
+function runPipelineStream(request, response) {
+  const apiPath = path.join(__dirname, "web_api.py");
+  const process = spawn("python", [apiPath, "--stream"], {
+    cwd: projectRoot,
+    windowsHide: true,
+  });
+  let buffer = "";
+  let errors = "";
+  response.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+
+  process.stdout.on("data", (chunk) => {
+    buffer += chunk.toString();
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop() || "";
+    lines.filter(Boolean).forEach((line) => response.write(`data: ${line}\n\n`));
+  });
+  process.stderr.on("data", (chunk) => {
+    errors += chunk.toString();
+  });
+  process.on("close", (code) => {
+    if (buffer.trim()) {
+      response.write(`data: ${buffer.trim()}\n\n`);
+    }
+    if (code !== 0) {
+      response.write(`data: ${JSON.stringify({ type: "error", error: errors || `process exited ${code}` })}\n\n`);
+    }
+    response.end();
+  });
+  request.on("close", () => {
+    if (!process.killed) {
+      process.kill();
+    }
+  });
+}
+
+function serveArtifact(request, response) {
+  const url = new URL(request.url, `http://localhost:${port}`);
+  const relativePath = decodeURIComponent(url.pathname.slice("/artifacts/".length));
+  const experimentsRoot = path.join(projectRoot, "data", "experiments");
+  const filePath = path.normalize(path.join(experimentsRoot, relativePath));
+  if (!filePath.startsWith(experimentsRoot) || !existsSync(filePath)) {
+    sendJson(response, 404, { ok: false, error: "artifact not found" });
+    return;
+  }
+  const extension = path.extname(filePath).toLowerCase();
+  response.writeHead(200, { "Content-Type": contentTypes[extension] || "application/octet-stream" });
+  createReadStream(filePath).pipe(response);
+}
+
 async function serveStatic(request, response) {
   const url = new URL(request.url, `http://localhost:${port}`);
   const routePath = url.pathname === "/" ? "/index.html" : url.pathname;
@@ -75,6 +134,11 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "GET" && request.url === "/api/run-stream") {
+    runPipelineStream(request, response);
+    return;
+  }
+
   if (request.method === "GET" && request.url === "/api/health") {
     sendJson(response, 200, { ok: true });
     return;
@@ -88,6 +152,10 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === "GET") {
+    if (request.url.startsWith("/artifacts/")) {
+      serveArtifact(request, response);
+      return;
+    }
     serveStatic(request, response);
     return;
   }

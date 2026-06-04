@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from collections.abc import Callable
+from typing import Any
 
 from randomiser.core.constants import DEFAULT_MIN_HEALTHY_SOURCES
 from randomiser.core.enums import HealthStatus, RunMode, RunStatus
@@ -15,6 +17,13 @@ from randomiser.pipeline.parallel_collector import CollectionResult, collect_sou
 from randomiser.pipeline.run_context import RunContext
 from randomiser.sources.base import EntropySource
 
+StageObserver = Callable[[str, dict[str, Any]], None]
+
+
+def _notify(observer: StageObserver | None, stage: str, payload: dict[str, Any]) -> None:
+    if observer is not None:
+        observer(stage, payload)
+
 
 class EntropyManager:
     def __init__(
@@ -26,15 +35,31 @@ class EntropyManager:
         self.sources = list(sources)
         self.min_required_sources = min_required_sources
 
-    def generate_once(self, context: RunContext) -> OtpRunResult:
+    def generate_once(self, context: RunContext, *, observer: StageObserver | None = None) -> OtpRunResult:
         collection = collect_sources(self.sources, context.run_id)
-        return self.generate_from_collection(context, collection)
+        _notify(
+            observer,
+            "source_collection",
+            {"source_count": len(collection.samples), "errors": dict(collection.errors)},
+        )
+        return self.generate_from_collection(context, collection, observer=observer)
 
-    def generate_once_with_samples(self, context: RunContext):
+    def generate_once_with_samples(self, context: RunContext, *, observer: StageObserver | None = None):
         collection = collect_sources(self.sources, context.run_id)
-        return self.generate_from_collection(context, collection), collection.samples
+        _notify(
+            observer,
+            "source_collection",
+            {"source_count": len(collection.samples), "errors": dict(collection.errors)},
+        )
+        return self.generate_from_collection(context, collection, observer=observer), collection.samples
 
-    def generate_from_collection(self, context: RunContext, collection: CollectionResult) -> OtpRunResult:
+    def generate_from_collection(
+        self,
+        context: RunContext,
+        collection: CollectionResult,
+        *,
+        observer: StageObserver | None = None,
+    ) -> OtpRunResult:
         features: dict[str, SourceFeatures] = {}
         health: dict[str, HealthResult] = {}
         trace: list[PipelineTraceStep] = []
@@ -62,6 +87,11 @@ class EntropyManager:
                 reasons=[f"collection failed: {message}"],
             )
 
+        _notify(
+            observer,
+            "source_analysis",
+            {"feature_count": len(features), "health_count": len(health)},
+        )
         run_status = decide_run_status(health.values(), min_required_sources=self.min_required_sources)
         trace.append(
             PipelineTraceStep(
@@ -70,6 +100,15 @@ class EntropyManager:
                 message=f"{sum(1 for item in health.values() if item.status is HealthStatus.PASS)} healthy sources",
                 metrics={"min_required_sources": self.min_required_sources},
             )
+        )
+        _notify(
+            observer,
+            "health_gate",
+            {
+                "status": run_status.value,
+                "healthy_sources": sum(1 for item in health.values() if item.status is HealthStatus.PASS),
+                "total_sources": len(health),
+            },
         )
 
         otp = ""
@@ -84,6 +123,7 @@ class EntropyManager:
                     "config_hash": context.config_hash,
                 },
             )
+            _notify(observer, "fusion", {"digest": fused.hex(), "byte_count": len(fused)})
             conditioned = condition_fused_bytes(
                 fused,
                 run_id=context.run_id,
@@ -93,7 +133,9 @@ class EntropyManager:
                     "config_hash": context.config_hash,
                 },
             )
+            _notify(observer, "conditioning", {"digest": conditioned.hex(), "byte_count": len(conditioned)})
             otp = generate_six_digit_otp(conditioned)
+            _notify(observer, "otp_generation", {"otp": otp})
             trace.extend(
                 [
                     PipelineTraceStep("source_fusion", RunStatus.OK, "fused healthy source hashes"),
