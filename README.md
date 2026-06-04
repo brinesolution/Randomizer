@@ -284,3 +284,9 @@ how a multi-source entropy pipeline can be structured and inspected.
 The current health checks are intentionally broad. They can reject obvious
 failures, but they are not a substitute for formal entropy estimation,
 statistical certification, hardware validation, or an external security audit.
+
+## License
+
+Randomiser is licensed under the [Apache License 2.0](LICENSE). You may use,
+modify, and distribute the project under its terms, including its patent grant
+and attribution requirements.
