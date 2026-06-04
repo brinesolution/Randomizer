@@ -99,6 +99,64 @@ function runPipelineStream(request, response) {
   });
 }
 
+function readJsonBody(request) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    request.on("data", (chunk) => {
+      body += chunk.toString();
+      if (body.length > 1024 * 1024) reject(new Error("request body too large"));
+    });
+    request.on("end", () => {
+      try {
+        resolve(JSON.parse(body || "{}"));
+      } catch (error) {
+        reject(new Error("request body must be valid JSON"));
+      }
+    });
+    request.on("error", reject);
+  });
+}
+
+async function generateOutput(request, response) {
+  try {
+    const body = await readJsonBody(request);
+    const apiPath = path.join(__dirname, "web_api.py");
+    execFile(
+      "python",
+      [
+        apiPath,
+        "--generate",
+        String(body.kind || ""),
+        "--seed",
+        String(body.seed || ""),
+        "--experiment-id",
+        String(body.experimentId || ""),
+        "--run-id",
+        String(body.runId || ""),
+      ],
+      {
+        cwd: projectRoot,
+        timeout: 30000,
+        maxBuffer: 1024 * 1024 * 8,
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          sendJson(response, 500, { ok: false, error: stderr || error.message });
+          return;
+        }
+        try {
+          const payload = JSON.parse(stdout);
+          sendJson(response, payload.ok ? 200 : 400, payload);
+        } catch (parseError) {
+          sendJson(response, 500, { ok: false, error: parseError.message });
+        }
+      },
+    );
+  } catch (error) {
+    sendJson(response, 400, { ok: false, error: error.message });
+  }
+}
+
 function serveArtifact(request, response) {
   const url = new URL(request.url, `http://localhost:${port}`);
   const relativePath = decodeURIComponent(url.pathname.slice("/artifacts/".length));
@@ -131,6 +189,11 @@ async function serveStatic(request, response) {
 const server = http.createServer(async (request, response) => {
   if (request.method === "POST" && request.url === "/api/run") {
     runPipeline(response);
+    return;
+  }
+
+  if (request.method === "POST" && request.url === "/api/generate") {
+    await generateOutput(request, response);
     return;
   }
 

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from randomiser.core.models import OtpRunResult
+from randomiser.core.models import SeedRunResult
 from randomiser.trace.step_models import TraceStepView
 
 
-def build_pipeline_trace(result: OtpRunResult) -> list[TraceStepView]:
+def build_pipeline_trace(result: SeedRunResult) -> list[TraceStepView]:
     healthy_count = sum(1 for health in result.health.values() if health.status.value == "pass")
     return [
         TraceStepView(
@@ -38,36 +38,29 @@ def build_pipeline_trace(result: OtpRunResult) -> list[TraceStepView]:
         TraceStepView(
             5,
             "source hashing",
-            "ok" if result.otp else result.status.value,
+            "ok" if result.seed_hex else result.status.value,
             "accepted source bytes were hashed independently with source identity and metadata",
             {"accepted_hashes": healthy_count},
         ),
         TraceStepView(
             6,
             "hg-msef fusion",
-            "ok" if result.otp else result.status.value,
+            "ok" if result.seed_hex else result.status.value,
             "accepted source hashes were sorted by source name and fused with run context",
             {"mode": result.mode.value},
         ),
         TraceStepView(
             7,
             "conditioning",
-            "ok" if result.otp else result.status.value,
-            "fused bytes were conditioned with SHA-512 before OTP conversion",
+            "ok" if result.seed_hex else result.status.value,
+            "fused bytes were conditioned with SHA-512 into a reusable master seed",
             {},
         ),
         TraceStepView(
             8,
-            "rejection sampling",
-            "ok" if result.otp else result.status.value,
-            "conditioned bytes were converted to a six digit range without simple modulo",
-            {},
-        ),
-        TraceStepView(
-            9,
-            "otp output",
+            "master seed",
             result.status.value,
-            "the final OTP was formatted with leading zeros preserved",
-            {"otp_digits": len(result.otp) if result.otp else 0},
+            "the reusable 512-bit seed is ready for an OTP, map, or maze",
+            {"seed_bytes": len(result.seed_hex) // 2 if result.seed_hex else 0},
         ),
     ]

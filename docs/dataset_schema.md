@@ -1,56 +1,31 @@
-Experiment folders use one directory per experiment:
+# Dataset Schema
+
+Each experiment stores source inputs, seed rows, and optional generated
+outputs.
 
 ```text
 data/experiments/<experiment_id>/
   manifest.json
-  input/
-    camera/
-    microphone/
-    cpu_jitter/
-    scheduler_jitter/
+  input/<source_name>/<run_id>.bin
   output/
     run_index.csv
+    generated/
+      otp/<run_id>.json
+      map/<run_id>.json
+      maze/<run_id>.json
   logs/
 ```
 
-Each OTP run uses one shared `run_id` filename stem across all source input files.
-
-Example:
-
-```text
-input/camera/run_000001.bin
-input/microphone/run_000001.bin
-input/cpu_jitter/run_000001.bin
-input/scheduler_jitter/run_000001.bin
-```
-
-The output CSV keeps the source filenames and OTP result together:
-
-```csv
-run_id,mode,camera_input_file,microphone_input_file,cpu_jitter_input_file,scheduler_jitter_input_file,otp,status,created_at
-run_000001,batch,input/camera/run_000001.bin,input/microphone/run_000001.bin,input/cpu_jitter/run_000001.bin,input/scheduler_jitter/run_000001.bin,493820,ok,2026-06-04T00:00:00Z
-```
-
-Both web mode and batch mode write through the same experiment storage contract.
-
-`manifest.json` contains:
-
-- `experiment_id`
-- `mode`
-- `config_name`
-- `started_at`
-- `source_names`
+All files from one run use the same `run_id`.
 
 `output/run_index.csv` columns:
 
-- `run_id`
-- `mode`
-- `camera_input_file`
-- `microphone_input_file`
-- `cpu_jitter_input_file`
-- `scheduler_jitter_input_file`
-- `otp`
-- `status`
-- `created_at`
+```csv
+run_id,mode,camera_input_file,microphone_input_file,cpu_jitter_input_file,scheduler_jitter_input_file,seed_hex,status,created_at
+```
 
-Only enabled source files are populated. Missing source columns remain empty so the CSV shape is stable across degraded or source-specific runs.
+`seed_hex` contains the 64-byte master seed as 128 hexadecimal characters.
+Missing source columns remain empty in degraded or source-specific runs.
+
+Generated output JSON files contain their output kind, deterministic data, and
+a hash of the domain-separated child seed.

@@ -25,12 +25,12 @@ def test_entropy_manager_emits_completed_pipeline_stages() -> None:
     )
 
     assert len(samples) == 2
-    assert result.otp
+    assert len(result.seed_hex) == 128
     assert events == [
         "source_collection",
         "source_analysis",
         "health_gate",
         "fusion",
         "conditioning",
-        "otp_generation",
+        "seed_generation",
     ]

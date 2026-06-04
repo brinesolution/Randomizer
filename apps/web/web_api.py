@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
+import csv
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any, Callable
@@ -13,6 +15,7 @@ from randomiser.core.enums import RunMode, SourceName
 from randomiser.core.models import ExperimentManifest
 from randomiser.core.paths import get_experiments_dir
 from randomiser.io.experiment_store import create_experiment_structure
+from randomiser.io.generated_output_store import save_generated_output
 from randomiser.io.manifest_writer import write_manifest
 from randomiser.io.run_logger import log_run
 from randomiser.pipeline.entropy_manager import EntropyManager
@@ -24,6 +27,7 @@ from randomiser.pipeline.health_tests import (
 )
 from randomiser.pipeline.run_context import build_run_context
 from randomiser.pipeline.source_hasher import hash_source_sample
+from randomiser.generators.service import generate_output
 from randomiser.sources import CameraSource, CPUJitterSource, MicrophoneSource, SchedulerJitterSource
 from randomiser.trace.pipeline_trace import build_pipeline_trace
 from randomiser.trace.web_visuals import (
@@ -192,14 +196,14 @@ def serialize_run(emit: EventEmitter | None = None):
             run_id=result.run_id,
             context=pipeline_context,
         )
-        if result.otp
+        if result.seed_hex
         else {}
     )
     payload = {
         "ok": True,
         "runId": result.run_id,
         "status": result.status.value,
-        "otp": result.otp,
+        "seed": result.seed_hex,
         "experimentId": experiment_id,
         "experimentPath": str(experiment_dir),
         "outputIndex": str(experiment_dir / "output" / "run_index.csv"),
@@ -224,7 +228,59 @@ def serialize_run(emit: EventEmitter | None = None):
     return payload
 
 
+def generate_selected_output(
+    *,
+    kind: str,
+    seed: str,
+    experiment_id: str,
+    run_id: str,
+) -> dict[str, Any]:
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", experiment_id):
+        raise ValueError("invalid experiment id")
+    if not re.fullmatch(r"run_[0-9]{6}", run_id):
+        raise ValueError("invalid run id")
+    experiment_dir = get_experiments_dir() / experiment_id
+    if not experiment_dir.is_dir():
+        raise ValueError("experiment does not exist")
+    index_path = experiment_dir / "output" / "run_index.csv"
+    with index_path.open(newline="", encoding="utf-8") as handle:
+        row = next((item for item in csv.DictReader(handle) if item["run_id"] == run_id), None)
+    if row is None:
+        raise ValueError("run does not exist")
+    if row.get("seed_hex") != seed:
+        raise ValueError("seed does not match saved run")
+    output = generate_output(seed, kind)
+    output_path = save_generated_output(experiment_dir, run_id, output)
+    relative_path = output_path.relative_to(experiment_dir).as_posix()
+    return {
+        "ok": True,
+        "output": output,
+        "artifact": artifact_url(experiment_id, relative_path),
+    }
+
+
 def main() -> None:
+    if "--generate" in sys.argv:
+        try:
+            kind = sys.argv[sys.argv.index("--generate") + 1]
+            seed = sys.argv[sys.argv.index("--seed") + 1]
+            experiment_id = sys.argv[sys.argv.index("--experiment-id") + 1]
+            run_id = sys.argv[sys.argv.index("--run-id") + 1]
+            print(
+                json.dumps(
+                    generate_selected_output(
+                        kind=kind,
+                        seed=seed,
+                        experiment_id=experiment_id,
+                        run_id=run_id,
+                    ),
+                    sort_keys=True,
+                )
+            )
+        except Exception as exc:
+            print(json.dumps({"ok": False, "error": str(exc)}, sort_keys=True))
+        return
+
     stream = "--stream" in sys.argv
 
     def emit(event: dict[str, Any]) -> None:

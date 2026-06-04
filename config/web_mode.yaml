@@ -15,4 +15,4 @@ sources:
 ui:
   show_source_inputs: true
   show_pipeline_trace: true
-  show_otp_result: true
+  show_output_selection: true

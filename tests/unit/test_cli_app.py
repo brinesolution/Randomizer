@@ -30,14 +30,14 @@ def test_cli_run_once_writes_one_experiment_row(tmp_path, capsys) -> None:
 
     assert exit_code == 0
     output = capsys.readouterr().out
-    assert "OTP" in output
+    assert "seed" in output
     output_path = tmp_path / "exp_cli_once" / "output" / "run_index.csv"
     with output_path.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
 
     assert len(rows) == 1
     assert rows[0]["run_id"] == "run_000001"
-    assert len(rows[0]["otp"]) == 6
+    assert len(rows[0]["seed_hex"]) == 128
 
 
 def test_cli_inspect_experiment_prints_summary(tmp_path, capsys) -> None:
@@ -59,3 +59,22 @@ def test_cli_inspect_experiment_prints_summary(tmp_path, capsys) -> None:
     output = capsys.readouterr().out
     assert "exp_cli_inspect" in output
     assert "rows: 1" in output
+
+
+def test_cli_run_once_can_generate_selected_output(tmp_path) -> None:
+    exit_code = main(
+        [
+            "run-once",
+            "--config",
+            "config/cpu_scheduler_only.yaml",
+            "--experiments-root",
+            str(tmp_path),
+            "--experiment-id",
+            "exp_cli_map",
+            "--output-kind",
+            "map",
+        ]
+    )
+
+    assert exit_code == 0
+    assert (tmp_path / "exp_cli_map" / "output" / "generated" / "map" / "run_000001.json").exists()

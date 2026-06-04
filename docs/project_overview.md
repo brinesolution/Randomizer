@@ -1,19 +1,19 @@
-Randomiser is a laptop-based MVP for collecting noisy source bytes, checking basic source health, and generating a six digit OTP for experiments.
+# Project Overview
 
-The project has two intended modes:
+Randomiser is a laptop-based experimental master-seed generator.
 
-- Batch mode runs from the terminal and can generate many OTP rows without stopping.
-- Web mode will show the same backend process visually after the backend is stable.
+It collects noisy source bytes, measures broad source health, hashes accepted
+sources, performs stable HG-MSEF fusion, and conditions the result into one
+512-bit seed.
 
-The current backend flow is:
+After seed creation, users may generate:
 
-1. Collect source bytes from enabled sources.
-2. Extract simple byte-level features.
-3. Run broad health checks and decide ok, degraded, or failed.
-4. Hash each accepted source independently.
-5. Fuse accepted source hashes with run context.
-6. Condition the fused bytes with SHA-512.
-7. Use rejection sampling to format a six digit OTP.
-8. Save source input files and the output CSV row under one experiment folder.
+- a six-digit OTP;
+- a five-color terrain map;
+- a fixed 30 by 30 maze.
 
-This is an experimental project and is not a certified random number generator or production OTP system.
+Web mode explains one live seed run and provides output controls. Batch mode
+creates many seeds and may optionally save one selected output for each run.
+
+This is not a certified random number generator or production security
+service.

@@ -42,6 +42,9 @@ def test_create_experiment_structure_creates_required_directories(tmp_path) -> N
     assert (experiment_dir / "input" / "cpu_jitter").is_dir()
     assert (experiment_dir / "input" / "scheduler_jitter").is_dir()
     assert (experiment_dir / "output").is_dir()
+    assert (experiment_dir / "output" / "generated" / "otp").is_dir()
+    assert (experiment_dir / "output" / "generated" / "map").is_dir()
+    assert (experiment_dir / "output" / "generated" / "maze").is_dir()
     assert (experiment_dir / "logs").is_dir()
 
 

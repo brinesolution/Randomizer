@@ -13,21 +13,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="randomiser")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    run_once = subparsers.add_parser("run-once", help="generate and save one OTP run")
+    run_once = subparsers.add_parser("run-once", help="generate and save one seed run")
     run_once.add_argument("--config", default="config/cpu_scheduler_only.yaml")
     run_once.add_argument("--experiments-root", default=None)
     run_once.add_argument("--experiment-id", default=None)
+    run_once.add_argument("--output-kind", choices=["otp", "map", "maze"], default=None)
     run_once.set_defaults(handler=run_once_command)
 
     batch = subparsers.add_parser(
         "batch",
         aliases=["generate-dataset"],
-        help="generate and save many OTP runs",
+        help="generate and save many seed runs",
     )
     batch.add_argument("--config", default="config/cpu_scheduler_only.yaml")
     batch.add_argument("--runs", type=int, default=None)
     batch.add_argument("--experiments-root", default=None)
     batch.add_argument("--experiment-id", default=None)
+    batch.add_argument("--output-kind", choices=["otp", "map", "maze"], default=None)
     batch.set_defaults(handler=generate_dataset_command)
 
     calibrate = subparsers.add_parser("calibrate", help="check source availability and health")

@@ -6,13 +6,12 @@ from typing import Any
 
 from randomiser.core.constants import DEFAULT_MIN_HEALTHY_SOURCES
 from randomiser.core.enums import HealthStatus, RunMode, RunStatus
-from randomiser.core.models import HealthResult, OtpRunResult, PipelineTraceStep, SourceFeatures
+from randomiser.core.models import HealthResult, PipelineTraceStep, SeedRunResult, SourceFeatures
 from randomiser.pipeline.conditioner import condition_fused_bytes
 from randomiser.pipeline.degraded_mode import decide_run_status
 from randomiser.pipeline.features import extract_features
 from randomiser.pipeline.health_gate import evaluate_source_health
 from randomiser.pipeline.hg_msef import fuse_healthy_sources
-from randomiser.pipeline.otp_generator import generate_six_digit_otp
 from randomiser.pipeline.parallel_collector import CollectionResult, collect_sources
 from randomiser.pipeline.run_context import RunContext
 from randomiser.sources.base import EntropySource
@@ -35,7 +34,7 @@ class EntropyManager:
         self.sources = list(sources)
         self.min_required_sources = min_required_sources
 
-    def generate_once(self, context: RunContext, *, observer: StageObserver | None = None) -> OtpRunResult:
+    def generate_once(self, context: RunContext, *, observer: StageObserver | None = None) -> SeedRunResult:
         collection = collect_sources(self.sources, context.run_id)
         _notify(
             observer,
@@ -59,7 +58,7 @@ class EntropyManager:
         collection: CollectionResult,
         *,
         observer: StageObserver | None = None,
-    ) -> OtpRunResult:
+    ) -> SeedRunResult:
         features: dict[str, SourceFeatures] = {}
         health: dict[str, HealthResult] = {}
         trace: list[PipelineTraceStep] = []
@@ -111,7 +110,7 @@ class EntropyManager:
             },
         )
 
-        otp = ""
+        seed_hex = ""
         if run_status is not RunStatus.FAILED:
             fused = fuse_healthy_sources(
                 collection.samples,
@@ -134,20 +133,20 @@ class EntropyManager:
                 },
             )
             _notify(observer, "conditioning", {"digest": conditioned.hex(), "byte_count": len(conditioned)})
-            otp = generate_six_digit_otp(conditioned)
-            _notify(observer, "otp_generation", {"otp": otp})
+            seed_hex = conditioned.hex()
+            _notify(observer, "seed_generation", {"seed": seed_hex, "byte_count": len(conditioned)})
             trace.extend(
                 [
                     PipelineTraceStep("source_fusion", RunStatus.OK, "fused healthy source hashes"),
                     PipelineTraceStep("conditioning", RunStatus.OK, "conditioned fused bytes"),
-                    PipelineTraceStep("otp_generation", RunStatus.OK, "generated six digit OTP"),
+                    PipelineTraceStep("seed_generation", RunStatus.OK, "created reusable master seed"),
                 ]
             )
 
-        return OtpRunResult(
+        return SeedRunResult(
             run_id=context.run_id,
             mode=context.mode,
-            otp=otp,
+            seed_hex=seed_hex,
             status=run_status,
             health=health,
             features=features,
@@ -161,5 +160,5 @@ def generate_once(
     context: RunContext,
     *,
     min_required_sources: int = DEFAULT_MIN_HEALTHY_SOURCES,
-) -> OtpRunResult:
+) -> SeedRunResult:
     return EntropyManager(sources, min_required_sources=min_required_sources).generate_once(context)

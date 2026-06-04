@@ -28,5 +28,7 @@ def create_experiment_structure(
         (experiment_dir / "input" / SOURCE_FOLDER_NAMES[source_name]).mkdir(parents=True, exist_ok=True)
 
     (experiment_dir / "output").mkdir(parents=True, exist_ok=True)
+    for output_kind in ("otp", "map", "maze"):
+        (experiment_dir / "output" / "generated" / output_kind).mkdir(parents=True, exist_ok=True)
     (experiment_dir / "logs").mkdir(parents=True, exist_ok=True)
     return experiment_dir

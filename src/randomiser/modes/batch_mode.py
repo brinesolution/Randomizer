@@ -7,7 +7,9 @@ from typing import Any
 
 from randomiser.core.constants import DEFAULT_MIN_HEALTHY_SOURCES
 from randomiser.core.enums import RunMode
-from randomiser.core.models import ExperimentManifest, OtpRunResult
+from randomiser.core.models import ExperimentManifest, SeedRunResult
+from randomiser.generators.service import generate_output
+from randomiser.io.generated_output_store import save_generated_output
 from randomiser.io.experiment_store import create_experiment_structure
 from randomiser.io.manifest_writer import write_manifest
 from randomiser.io.run_logger import log_run
@@ -30,7 +32,8 @@ def run_batch(
     config_name: str,
     min_required_sources: int = DEFAULT_MIN_HEALTHY_SOURCES,
     config: dict[str, Any] | None = None,
-) -> list[OtpRunResult]:
+    output_kind: str | None = None,
+) -> list[SeedRunResult]:
     if run_count < 1:
         raise ValueError("run_count must be positive")
 
@@ -50,7 +53,7 @@ def run_batch(
     write_manifest(experiment_dir, manifest)
 
     manager = EntropyManager(source_list, min_required_sources=min_required_sources)
-    results: list[OtpRunResult] = []
+    results: list[SeedRunResult] = []
     for run_number in range(1, run_count + 1):
         context = build_run_context(
             run_number,
@@ -60,6 +63,12 @@ def run_batch(
         )
         result, samples = manager.generate_once_with_samples(context)
         logged = log_run(experiment_dir, result, samples)
+        if output_kind and logged.seed_hex:
+            save_generated_output(
+                experiment_dir,
+                logged.run_id,
+                generate_output(logged.seed_hex, output_kind),
+            )
         results.append(logged)
 
     return results

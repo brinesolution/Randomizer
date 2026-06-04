@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "randomiser"
 version = "0.1.0"
-description = "Multi-source entropy OTP generator with batch and web modes"
+description = "Multi-source seed generator with selectable OTP, map, and maze outputs"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "ManniAndBinni" }]

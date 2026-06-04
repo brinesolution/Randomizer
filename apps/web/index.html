@@ -22,7 +22,7 @@
           <a href="#sources">Sources</a>
           <a href="#health">Health</a>
           <a href="#transformation">Transformation</a>
-          <a href="#otp">OTP</a>
+          <a href="#output">Output</a>
         </nav>
         <span id="statusBadge" class="status-badge">Idle</span>
       </div>
@@ -30,8 +30,8 @@
 
     <div class="ticker" aria-label="Pipeline stages">
       <div class="ticker-track">
-        <span>Breaking process</span><b>Source capture</b><b>Feature extraction</b><b>Health gate</b><b>SHA-512 source hashing</b><b>HG-MSEF fusion</b><b>Rejection sampling</b>
-        <span aria-hidden="true">Breaking process</span><b aria-hidden="true">Source capture</b><b aria-hidden="true">Feature extraction</b><b aria-hidden="true">Health gate</b><b aria-hidden="true">SHA-512 source hashing</b><b aria-hidden="true">HG-MSEF fusion</b><b aria-hidden="true">Rejection sampling</b>
+        <span>Breaking process</span><b>Source capture</b><b>Feature extraction</b><b>Health gate</b><b>SHA-512 source hashing</b><b>HG-MSEF fusion</b><b>Master seed</b><b>Output selection</b>
+        <span aria-hidden="true">Breaking process</span><b aria-hidden="true">Source capture</b><b aria-hidden="true">Feature extraction</b><b aria-hidden="true">Health gate</b><b aria-hidden="true">SHA-512 source hashing</b><b aria-hidden="true">HG-MSEF fusion</b><b aria-hidden="true">Master seed</b><b aria-hidden="true">Output selection</b>
       </div>
     </div>
 
@@ -39,9 +39,9 @@
       <section class="hero report-width">
         <article class="lead-story">
           <p class="section-label">Special technical report</p>
-          <h1>How laptop noise becomes a six-digit OTP</h1>
+          <h1>How laptop noise becomes a reusable seed</h1>
           <p class="standfirst">
-            This live report follows one real run from camera pixels, microphone samples, CPU timing, and scheduler timing through extraction, health checks, cryptographic hashing, fusion, conditioning, and unbiased number selection.
+            This live report follows one real run from camera pixels, microphone samples, CPU timing, and scheduler timing through extraction, health checks, cryptographic hashing, fusion, conditioning, and reusable seed creation.
           </p>
           <p class="hero-body">
             <span class="drop-cap">P</span>ress start once. The report automatically opens each section after its backend stage finishes. Original camera and microphone evidence is saved permanently beside the experiment results.
@@ -58,8 +58,8 @@
             <li data-stage="health_gate"><span>03</span> Apply health gate</li>
             <li data-stage="fusion"><span>04</span> Hash and fuse sources</li>
             <li data-stage="conditioning"><span>05</span> Condition fused digest</li>
-            <li data-stage="otp_generation"><span>06</span> Select the OTP</li>
-            <li data-stage="experiment_save"><span>07</span> Save experiment report</li>
+            <li data-stage="seed_generation"><span>06</span> Create reusable seed</li>
+            <li data-stage="experiment_save"><span>07</span> Save seed report</li>
           </ol>
           <p id="reportNotice" class="report-notice" aria-live="polite">Ready to request the four laptop sources.</p>
         </aside>
@@ -98,9 +98,9 @@
           <header class="section-header inverted">
             <div>
               <p class="section-label">Inside the algorithm / figures 3.1–3.4</p>
-              <h2>From accepted bytes to one number</h2>
+              <h2>From accepted bytes to one master seed</h2>
             </div>
-            <p>Healthy source hashes converge in a stable order, receive final conditioning, and enter rejection sampling without simple modulo bias.</p>
+            <p>Healthy source hashes converge in a stable order and receive final conditioning. The resulting 512-bit seed can drive several deterministic outputs.</p>
           </header>
           <div id="transformationReport" class="transformation-report">
             <p class="empty-copy">Transformation figures appear after hashing and fusion complete.</p>
@@ -108,14 +108,25 @@
         </div>
       </section>
 
-      <section id="otp" class="otp-section pending-section" data-reveal="otp_generation">
-        <div class="report-width otp-grid">
+      <section id="output" class="output-section pending-section" data-reveal="seed_generation">
+        <div class="report-width output-layout">
           <div>
-            <p class="section-label">Final edition</p>
-            <h2>The generated OTP</h2>
-            <p>The six-digit output preserves leading zeros and is saved with all source inputs under one run ID.</p>
+            <p class="section-label">Output desk</p>
+            <h2>Choose what the seed creates</h2>
+            <p>The same saved seed can create an OTP, a five-color terrain map, or a fixed 30 by 30 maze without collecting the laptop sources again.</p>
           </div>
-          <output id="otpValue" class="otp-value" aria-live="polite">------</output>
+          <div class="seed-panel">
+            <span>512-bit master seed</span>
+            <code id="seedValue">Waiting for seed creation</code>
+          </div>
+          <div id="outputChoices" class="output-choices" aria-label="Choose generated output">
+            <button type="button" data-output-kind="otp" disabled>Generate OTP</button>
+            <button type="button" data-output-kind="map" disabled>Generate Map</button>
+            <button type="button" data-output-kind="maze" disabled>Generate Maze</button>
+          </div>
+          <div id="outputResult" class="output-result" aria-live="polite">
+            <p>Select an output after the seed is ready.</p>
+          </div>
           <div id="savePanel" class="save-panel">
             <p>Experiment paths appear after the report is saved.</p>
           </div>
@@ -126,7 +137,7 @@
     <footer class="footer">
       <div class="report-width">
         <strong>The Randomiser Record</strong>
-        <span>Research and portfolio prototype. Not a certified TRNG or production OTP service.</span>
+        <span>Experimental system. Not a certified TRNG or security service.</span>
         <span>Edition: Vol. 1.0</span>
       </div>
     </footer>

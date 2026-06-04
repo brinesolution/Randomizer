@@ -1,7 +1,8 @@
-# Randomiser Web App
+# Randomiser web app
 
-Local educational web mode that runs the real Randomiser pipeline and reveals
-each completed stage automatically.
+The local web app runs the real source pipeline, stops after reusable seed
+creation, and then lets the user generate an OTP, terrain map, or maze from
+that saved seed.
 
 Run from the project root:
 
@@ -9,47 +10,24 @@ Run from the project root:
 python scripts/run_web.py
 ```
 
-Alternatively:
-
-```powershell
-npm --prefix apps/web start
-```
-
-Open `http://localhost:4173` and press `Start Live Source Run`. The Python
-backend collects from the laptop camera, microphone, CPU jitter, and scheduler
-jitter sources. Camera and microphone access may require operating-system
-permission.
+Open `http://localhost:4173` and press `Start Live Source Run`.
 
 The report reveals source evidence, feature extraction, health checks, source
-hashing, fusion, conditioning, rejection sampling, and the final OTP as the
-real backend stages finish.
-
-Each run is saved permanently under:
-
-```text
-data/experiments/<experiment_id>/
-  input/<source_name>/<run_id>.bin
-  output/previews/camera/<run_id>_original.jpg
-  output/previews/camera/<run_id>_grayscale.png
-  output/previews/camera/<run_id>_lowbit.png
-  output/previews/microphone/<run_id>.wav
-  output/run_index.csv
-```
-
-The microphone preview contains the one-second web capture and supports
-playback speeds from `0.01x` to `2x`.
-
-Optional QA views:
-
-```text
-http://localhost:4173/?autorun=1&focus=health
-http://localhost:4173/?autorun=1&focus=transformation
-http://localhost:4173/?autorun=1&focus=otp
-```
+hashing, HG-MSEF fusion, conditioning, and the final 512-bit seed. Output
+controls become available only after the seed is saved.
 
 Endpoints:
 
 - `GET /api/health`: server health
-- `GET /api/run-stream`: one run as server-sent stage events
-- `POST /api/run`: one completed run as JSON
+- `GET /api/run-stream`: one seed run as server-sent stage events
+- `POST /api/run`: one completed seed run as JSON
+- `POST /api/generate`: generate and save an OTP, map, or maze
 - `GET /artifacts/<experiment_id>/...`: saved run artifacts
+
+Optional QA views:
+
+```text
+http://localhost:4173/?autorun=1&focus=output&output=otp
+http://localhost:4173/?autorun=1&focus=output&output=map
+http://localhost:4173/?autorun=1&focus=output&output=maze
+```

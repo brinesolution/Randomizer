@@ -4,7 +4,7 @@ import csv
 from datetime import datetime, timezone
 
 from randomiser.core.enums import RunMode, RunStatus, SourceName
-from randomiser.core.models import OtpRunResult, SourceSample
+from randomiser.core.models import SeedRunResult, SourceSample
 from randomiser.io.experiment_store import create_experiment_structure
 from randomiser.io.run_logger import log_run
 
@@ -27,10 +27,10 @@ def test_log_run_writes_four_input_files_and_one_output_row(tmp_path) -> None:
         make_sample(SourceName.CPU_JITTER, b"cpu"),
         make_sample(SourceName.SCHEDULER_JITTER, b"scheduler"),
     ]
-    result = OtpRunResult(
+    result = SeedRunResult(
         run_id="run_000001",
         mode=RunMode.BATCH,
-        otp="000042",
+        seed_hex="ab" * 64,
         status=RunStatus.OK,
         created_at=datetime(2026, 6, 4, 8, 32, tzinfo=timezone.utc),
     )
@@ -59,7 +59,7 @@ def test_log_run_writes_four_input_files_and_one_output_row(tmp_path) -> None:
             "microphone_input_file": "input/microphone/run_000001.bin",
             "cpu_jitter_input_file": "input/cpu_jitter/run_000001.bin",
             "scheduler_jitter_input_file": "input/scheduler_jitter/run_000001.bin",
-            "otp": "000042",
+            "seed_hex": "ab" * 64,
             "status": "ok",
             "created_at": "2026-06-04T08:32:00+00:00",
         }

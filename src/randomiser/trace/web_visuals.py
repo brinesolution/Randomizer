@@ -8,16 +8,11 @@ from typing import Any
 
 import numpy as np
 
-from randomiser.core.constants import OTP_RANGE
 from randomiser.core.enums import HealthStatus
-from randomiser.core.hashing import sha512_digest
 from randomiser.core.models import HealthResult, SourceSample
 from randomiser.pipeline.conditioner import condition_fused_bytes
 from randomiser.pipeline.hg_msef import fuse_source_hashes
 from randomiser.pipeline.source_hasher import hash_source_sample
-
-UINT32_SIZE = 2**32
-
 
 def compact_series(values: Sequence[int] | np.ndarray, limit: int = 128) -> list[int]:
     items = [int(value) for value in values]
@@ -105,28 +100,6 @@ def save_microphone_preview(
     return audio_path.relative_to(experiment_dir).as_posix()
 
 
-def _rejection_details(seed_bytes: bytes, upper_bound: int = OTP_RANGE) -> dict[str, Any]:
-    limit = (UINT32_SIZE // upper_bound) * upper_bound
-    current = seed_bytes
-    round_index = 0
-    inspected = 0
-    while True:
-        usable = len(current) - (len(current) % 4)
-        for index in range(0, usable, 4):
-            candidate = int.from_bytes(current[index:index + 4], "big")
-            inspected += 1
-            if candidate < limit:
-                return {
-                    "candidate": candidate,
-                    "limit": limit,
-                    "accepted": True,
-                    "inspected": inspected,
-                    "value": candidate % upper_bound,
-                }
-        round_index += 1
-        current = sha512_digest(seed_bytes + round_index.to_bytes(8, "big"))
-
-
 def build_transformation_visual(
     samples: Sequence[SourceSample],
     health_results: Mapping[str, HealthResult],
@@ -144,7 +117,6 @@ def build_transformation_visual(
     }
     fused = fuse_source_hashes(hashes, run_id=run_id, context=context)
     conditioned = condition_fused_bytes(fused, run_id=run_id, context=context)
-    rejection = _rejection_details(conditioned)
     return {
         "sourceHashes": [
             {
@@ -156,6 +128,5 @@ def build_transformation_visual(
         ],
         "fusedDigest": fused.hex(),
         "conditionedDigest": conditioned.hex(),
-        "rejection": rejection,
-        "otp": f"{rejection['value']:06d}",
+        "seedHex": conditioned.hex(),
     }

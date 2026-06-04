@@ -1,182 +1,114 @@
 # Randomiser
 
-Randomiser is an experimental Python project that turns noisy laptop signals
-into a six-digit OTP.
+Randomiser is a Python and Node.js application that turns noisy laptop signals
+into a reusable 512-bit seed.
 
-It collects data from a camera, microphone, CPU timing, and scheduler timing.
-Each source is checked before it is allowed into the result. Accepted sources
-are hashed separately, fused in a stable order, conditioned with SHA-512, and
-converted into a six-digit number with rejection sampling.
+It collects data from a camera, microphone, CPU timing loop, and scheduler
+timing threads. Each source is measured before it is accepted. Healthy sources
+are hashed separately, fused in a stable order, and conditioned with SHA-512.
 
-The project has two ways to run:
+After the seed is saved, the user chooses what it creates:
 
-- **Web mode** explains one live run with images, graphs, health checks,
-  transformation figures, and the final OTP.
-- **Batch mode** runs repeatedly from a terminal and saves every input and
-  output for later analysis.
+- a six-digit OTP generated with rejection sampling;
+- a five-color terrain map;
+- a fixed 30 by 30 perfect maze with a closed outer boundary.
 
-Both modes call the same source collectors, health checks, pipeline, and
-storage code.
+The source pipeline runs once. All selected outputs are deterministic
+derivations of that same seed.
 
 > [!WARNING]
-> Randomiser is a research and portfolio prototype. It is not a certified
-> hardware random number generator, true random number generator, or
-> production OTP service. Do not use it to protect real accounts, money,
-> secrets, or production systems.
+> Randomiser is not a certified hardware random number generator, true random
+> number generator, or security service. Do not use it to protect real
+> accounts, money, or secrets.
 
 ## Demo
 
-This screenshot shows a real web run. It follows accepted source bytes through
-source hashing, HG-MSEF fusion, SHA-512 conditioning, rejection sampling, and
-the final OTP.
+The web report explains the live source process, stops at the master seed, and
+then offers OTP, map, and maze output controls.
 
-<img src="docs/assets/randomiser-web-demo.png" alt="Randomiser web mode showing source hashing, fusion, conditioning, rejection sampling, and generated OTP 819789" width="100%">
-
-The run shown above produced:
-
-```text
-experiment: exp_20260604_053058_197164_web
-run_id:     run_000001
-status:     ok
-otp:        819789
-```
-
-Its saved output row:
-
-```csv
-run_id,mode,camera_input_file,microphone_input_file,cpu_jitter_input_file,scheduler_jitter_input_file,otp,status
-run_000001,web,input/camera/run_000001.bin,input/microphone/run_000001.bin,input/cpu_jitter/run_000001.bin,input/scheduler_jitter/run_000001.bin,819789,ok
-```
-
-Every run is different. The values above are an example, not an expected test
-result.
-
-## The Idea
-
-Laptops already contain several sources of physical and timing variation.
-Camera sensor noise, microphone samples, CPU timing differences, and operating
-system scheduling delays all change from one moment to the next.
-
-Randomiser records those signals and makes the process inspectable. The web
-app is meant for understanding the pipeline. Batch mode is meant for collecting
-larger experiment datasets.
-
-The project does not assume that every captured byte is useful. It measures
-basic source properties first and excludes failed sources before fusion. These
-checks can catch obvious problems, but they do not prove cryptographic entropy.
+<img src="docs/assets/randomiser-web-demo.png" alt="Randomiser output desk showing a reusable master seed and generated five-color terrain map" width="100%">
 
 ## Pipeline
 
 ```mermaid
 flowchart LR
-    A[Camera] --> E[Feature extraction and health checks]
+    A[Camera] --> E[Features and health gate]
     B[Microphone] --> E
     C[CPU jitter] --> E
     D[Scheduler jitter] --> E
-    E --> F[Hash each accepted source]
+    E --> F[Hash accepted sources]
     F --> G[HG-MSEF stable ordered fusion]
     G --> H[SHA-512 conditioning]
-    H --> I[Rejection sampling]
-    I --> J[Six-digit OTP]
-    J --> K[Saved experiment]
+    H --> I[512-bit master seed]
+    I --> J[OTP]
+    I --> K[Five-color map]
+    I --> L[30x30 maze]
 ```
 
-### What each step does
+### Seed creation
 
-1. **Collect sources**
-
-   Read real bytes from the laptop camera, microphone, CPU timing loop, and
-   scheduler timing threads.
-
-2. **Extract features**
-
-   Calculate byte diversity, bit balance, Shannon entropy, and
+1. Collect real bytes from the four laptop sources.
+2. Calculate byte diversity, bit balance, Shannon entropy, and
    autocorrelation.
+3. Mark each source as `pass`, `warn`, or `fail`.
+4. Hash each accepted source with its identity, run ID, bytes, and metadata.
+5. Fuse accepted hashes in stable source-name order with the run context.
+6. Apply final SHA-512 conditioning and save the resulting 512-bit seed.
 
-3. **Run the health gate**
+### Output generation
 
-   Mark each source as `pass`, `warn`, or `fail`. Failed sources do not enter
-   fusion. A run fails when fewer than the configured minimum number of
-   sources remain.
+Each output receives its own domain-separated child seed. Generating a map does
+not consume or change the seed used for an OTP or maze.
 
-4. **Hash accepted sources**
+- **OTP:** six digits with leading zeros preserved. Rejection sampling avoids
+  simple modulo bias.
+- **Map:** a deterministic 48 by 48 terrain grid using deep ocean, shallow
+  ocean, beach, land, and highland.
+- **Maze:** a deterministic perfect maze with exactly 30 by 30 cells, closed
+  outside walls, and opposite-corner start and end cells.
 
-   SHA-512 binds each accepted source to its source name, run ID, raw bytes,
-   and metadata digest.
+## Web mode
 
-5. **Fuse sources with HG-MSEF**
-
-   Sort source hashes by source name, combine them with the run context, and
-   hash the combined payload. Stable ordering keeps the result deterministic
-   for the same inputs and context.
-
-6. **Condition the fused bytes**
-
-   Apply a final domain-separated SHA-512 pass before number selection.
-
-7. **Generate the OTP**
-
-   Read 32-bit candidates and use rejection sampling to avoid the bias caused
-   by applying a simple modulo operation to every candidate.
-
-8. **Save the run**
-
-   Store source inputs, previews, metadata, status, and OTP under one
-   experiment ID.
-
-## Web Mode
-
-Web mode runs one real source collection and reveals each pipeline stage as it
-finishes.
-
-It shows:
-
-- the captured camera frame, grayscale conversion, and low-bit map;
-- a playable one-second microphone recording and waveform;
-- CPU and scheduler timing graphs;
-- source health checks, distributions, and lag plots;
-- source hashing, fusion, conditioning, and rejection-sampling figures;
-- the generated OTP and saved experiment paths.
-
-Start it from the project root:
+Web mode reveals each source and seed-creation stage as the backend completes
+it. Afterward, the same seed can generate any of the three outputs without
+collecting the laptop sources again.
 
 ```powershell
 python scripts/run_web.py
 ```
 
-Then open:
+Open `http://localhost:4173`.
 
-```text
-http://localhost:4173
-```
+The browser interface is served by Node.js. Source collection, seed creation,
+output generation, and storage run in Python.
 
-The browser page is served by Node.js. The source collection and OTP pipeline
-run in Python.
+## Terminal and batch modes
 
-## Batch Mode
-
-Batch mode repeatedly runs the same pipeline without the browser interface.
-It is useful when collecting a larger set of inputs and OTP results.
-
-Run the configured batch:
-
-```powershell
-python scripts/generate_dataset.py --config config/batch_run.yaml
-```
-
-Override the configured run count:
-
-```powershell
-python scripts/generate_dataset.py --config config/batch_run.yaml --runs 100
-```
-
-Generate one terminal run:
+Generate and save one seed:
 
 ```powershell
 python scripts/run_once.py --config config/laptop_mvp.yaml
 ```
 
-Check the four real sources before a longer run:
+Generate one seed and a selected output:
+
+```powershell
+python scripts/run_once.py --config config/laptop_mvp.yaml --output-kind map
+```
+
+Generate many seeds:
+
+```powershell
+python scripts/generate_dataset.py --config config/batch_run.yaml --runs 100
+```
+
+Generate a maze for every batch seed:
+
+```powershell
+python scripts/generate_dataset.py --config config/batch_run.yaml --runs 100 --output-kind maze
+```
+
+Check the real source devices before a longer run:
 
 ```powershell
 python scripts/calibrate_sources.py --config config/laptop_mvp.yaml
@@ -184,14 +116,12 @@ python scripts/calibrate_sources.py --config config/laptop_mvp.yaml
 
 ## Installation
 
-### Requirements
+Requirements:
 
 - Python 3.11 or newer
 - Node.js
 - A working camera and microphone
-- Operating-system permission to use the camera and microphone
-
-### Setup
+- Operating-system permission to access those devices
 
 ```powershell
 git clone https://github.com/brinesolution/Randomizer.git
@@ -200,17 +130,10 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e .
-```
-
-Run the test suite:
-
-```powershell
 pytest -q
 ```
 
-## Saved Experiments
-
-Both run modes save data under `data/experiments/`.
+## Saved experiments
 
 ```text
 data/experiments/<experiment_id>/
@@ -224,48 +147,48 @@ data/experiments/<experiment_id>/
     previews/
       camera/
       microphone/
+    generated/
+      otp/<run_id>.json
+      map/<run_id>.json
+      maze/<run_id>.json
     run_index.csv
   logs/
 ```
 
-All source files from one run share the same `run_id`. The corresponding CSV
-row records those file paths beside the OTP, run status, mode, and timestamp.
-
-Camera and microphone previews are saved by web mode so the visual report can
-be inspected after a run finishes.
+`run_index.csv` ties every source input to the saved master seed and run
+status. Selected outputs are stored separately under the same run ID.
 
 > [!CAUTION]
 > Experiment folders can contain private camera frames, microphone recordings,
 > and device timing data. Review them before sharing or committing them.
 
-## Project Layout
+## Project layout
 
 ```text
-apps/web/                 Node server and browser interface
-config/                   Source and run-mode configuration
-docs/                     Architecture, algorithm, and limitation notes
-scripts/                  Commands for web, batch, calibration, and one run
-src/randomiser/core/      Shared models, configuration, hashing, and utilities
-src/randomiser/sources/   Camera, microphone, CPU, and scheduler collectors
-src/randomiser/pipeline/  Health checks, fusion, conditioning, and OTP logic
-src/randomiser/io/        Experiment folders, raw inputs, manifests, and CSVs
-src/randomiser/modes/     Batch and web backend entry points
-src/randomiser/trace/     Display-ready pipeline and visualization data
-tests/                    Unit and integration tests
+apps/web/                   Node server and browser interface
+config/                     Source and run-mode configuration
+docs/                       Architecture and algorithm notes
+scripts/                    Web, batch, calibration, and one-run commands
+src/randomiser/core/        Shared models, configuration, and hashing
+src/randomiser/sources/     Laptop source collectors
+src/randomiser/pipeline/    Health checks, fusion, and seed creation
+src/randomiser/generators/  OTP, terrain map, and maze generators
+src/randomiser/io/          Experiment and generated-output storage
+src/randomiser/modes/       Batch and web backend workflows
+src/randomiser/trace/       Display-ready pipeline visualization data
+tests/                      Unit and integration tests
 ```
 
-## Configuration
+## Design notes
 
-Useful starting configurations:
+- The entropy pipeline owns seed creation only.
+- Output generators never recollect sources or repeat the health gate.
+- Child seeds are domain separated by output kind.
+- A failed health gate produces no seed and disables output generation.
+- The map palette is intentionally limited to five colors.
+- The maze dimensions and outside boundary are fixed by contract.
 
-- `config/laptop_mvp.yaml`: one laptop run with all four sources.
-- `config/web_mode.yaml`: web-mode source and storage settings.
-- `config/batch_run.yaml`: long-running batch settings.
-- `config/degraded_mode.yaml`: exercises reduced-source behavior.
-
-The default web and batch configurations require at least two healthy sources.
-
-## Further Reading
+## Further reading
 
 - [Project overview](docs/project_overview.md)
 - [Architecture](docs/architecture.md)
@@ -276,17 +199,6 @@ The default web and batch configurations require at least two healthy sources.
 - [Dataset schema](docs/dataset_schema.md)
 - [Limitations](docs/limitations.md)
 
-## Current Scope
-
-Randomiser is useful for controlled experiments, demonstrations, and learning
-how a multi-source entropy pipeline can be structured and inspected.
-
-The current health checks are intentionally broad. They can reject obvious
-failures, but they are not a substitute for formal entropy estimation,
-statistical certification, hardware validation, or an external security audit.
-
 ## License
 
-Randomiser is licensed under the [Apache License 2.0](LICENSE). You may use,
-modify, and distribute the project under its terms, including its patent grant
-and attribution requirements.
+Randomiser is licensed under the [Apache License 2.0](LICENSE).

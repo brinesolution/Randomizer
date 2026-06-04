@@ -12,11 +12,13 @@ from randomiser.core.models import ExperimentManifest
 from randomiser.core.paths import get_project_root
 from randomiser.io.artifact_namer import format_experiment_id
 from randomiser.io.experiment_store import create_experiment_structure
+from randomiser.io.generated_output_store import save_generated_output
 from randomiser.io.manifest_writer import write_manifest
 from randomiser.io.run_logger import log_run
 from randomiser.modes.batch_mode import build_sources_from_config
 from randomiser.pipeline.entropy_manager import EntropyManager
 from randomiser.pipeline.run_context import build_run_context
+from randomiser.generators.service import generate_output
 
 
 def resolve_experiments_root(config: dict[str, Any], override: str | None = None) -> Path:
@@ -56,7 +58,11 @@ def run_once_command(args: Namespace) -> int:
     ).generate_once_with_samples(context)
     logged = log_run(experiment_dir, result, samples)
 
-    print(f"OTP: {logged.otp}")
+    print(f"seed: {logged.seed_hex}")
+    if args.output_kind and logged.seed_hex:
+        output = generate_output(logged.seed_hex, args.output_kind)
+        output_path = save_generated_output(experiment_dir, logged.run_id, output)
+        print(f"{args.output_kind}: {output_path}")
     print(f"status: {logged.status.value}")
     print(f"experiment: {experiment_dir}")
     return 0

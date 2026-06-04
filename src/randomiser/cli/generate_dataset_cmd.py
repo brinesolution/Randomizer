@@ -25,6 +25,7 @@ def generate_dataset_command(args: Namespace) -> int:
         config_name=str(args.config),
         min_required_sources=min_required_sources,
         config=config,
+        output_kind=args.output_kind,
     )
 
     print(f"experiment: {experiments_root / experiment_id}")

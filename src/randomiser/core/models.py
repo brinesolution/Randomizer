@@ -47,10 +47,10 @@ class PipelineTraceStep:
 
 
 @dataclass(slots=True)
-class OtpRunResult:
+class SeedRunResult:
     run_id: str
     mode: RunMode
-    otp: str
+    seed_hex: str
     status: RunStatus
     source_files: dict[str, str] = field(default_factory=dict)
     health: dict[str, HealthResult] = field(default_factory=dict)

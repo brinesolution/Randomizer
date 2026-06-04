@@ -5,13 +5,16 @@ const reportNotice = document.querySelector("#reportNotice");
 const sourceGrid = document.querySelector("#sourceGrid");
 const healthGrid = document.querySelector("#healthGrid");
 const transformationReport = document.querySelector("#transformationReport");
-const otpValue = document.querySelector("#otpValue");
+const seedValue = document.querySelector("#seedValue");
+const outputChoices = document.querySelector("#outputChoices");
+const outputResult = document.querySelector("#outputResult");
 const savePanel = document.querySelector("#savePanel");
 
 let eventSource = null;
 let audioContext = null;
 let activeAudioSource = null;
 const audioBuffers = new Map();
+let currentRun = null;
 
 document.querySelector("#editionDate").textContent = new Intl.DateTimeFormat("en-US", {
   dateStyle: "long",
@@ -60,8 +63,8 @@ function completeStage(stage, payload = {}) {
     health_gate: `Health gate finished with ${payload.healthy_sources ?? 0} accepted sources.`,
     fusion: "Accepted source hashes fused into one digest.",
     conditioning: "Final SHA-512 conditioning complete.",
-    otp_generation: "Rejection sampling accepted a six-digit value.",
-    experiment_save: "Source evidence and output index saved permanently.",
+    seed_generation: "The reusable 512-bit master seed is ready.",
+    experiment_save: "Source evidence and the master seed were saved permanently.",
   };
   reportNotice.textContent = messages[stage] || `${stage} complete.`;
 }
@@ -346,8 +349,8 @@ function rejectionDiagram(rejection) {
 }
 
 function renderTransformation(data) {
-  if (!data?.sourceHashes?.length || !data.rejection) {
-    transformationReport.innerHTML = `<div class="missing-evidence"><p class="section-label">Transformation unavailable</p><h4>The health gate did not admit enough sources to generate an OTP.</h4></div>`;
+  if (!data?.sourceHashes?.length || !data.seedHex) {
+    transformationReport.innerHTML = `<div class="missing-evidence"><p class="section-label">Transformation unavailable</p><h4>The health gate did not admit enough sources to generate a seed.</h4></div>`;
     return;
   }
   const sourceHashes = data.sourceHashes || [];
@@ -367,7 +370,7 @@ function renderTransformation(data) {
       <p class="diagram-note">Lines show stable source-name order and convergence. They do not encode hash similarity or magnitude.</p>
     </article>
     <article class="transformation-figure-block">
-      <p class="section-label">Fig. 3.3 — Fusion and conditioning byte comparison</p>
+      <p class="section-label">Fig. 3.3 — Fusion, conditioning, and master seed</p>
       <div class="digest-heatmap-pair">
         ${digestHeatmap("Fused digest", data.fusedDigest)}
         ${digestHeatmap("Conditioned digest", data.conditionedDigest)}
@@ -375,23 +378,17 @@ function renderTransformation(data) {
     </article>
     <div class="digest-pair">
       ${digestBlock("Exact fused digest", data.fusedDigest, "One digest represents all accepted sources and the run context.")}
-      ${digestBlock("Exact conditioned digest", data.conditionedDigest, "A final domain-separated SHA-512 pass prepares bytes for number selection.")}
+      ${digestBlock("Exact master seed", data.seedHex, "The conditioned 512-bit digest becomes the reusable master seed.")}
     </div>
-    <article class="rejection-report">
-      <p class="section-label">Fig. 3.4 — Rejection sampling</p>
-      ${rejectionDiagram(data.rejection)}
-      <div class="rejection-equation">
-        <span>Candidate <strong>${escapeHtml(data.rejection.candidate)}</strong></span>
-        <span>&lt; acceptance limit <strong>${escapeHtml(data.rejection.limit)}</strong></span>
-        <span>accepted after <strong>${escapeHtml(data.rejection.inspected)}</strong> inspected chunk(s)</span>
-        <span>uniform value <strong>${escapeHtml(data.rejection.value)}</strong></span>
-      </div>
-      <p>Only candidates below the largest evenly divisible limit are accepted. This avoids the unequal probabilities produced by applying simple modulo to every 32-bit value.</p>
+    <article class="seed-ready-report">
+      <p class="section-label">Seed ready</p>
+      <code>${escapeHtml(data.seedHex)}</code>
+      <p>Output generators derive isolated child seeds from this value. Choosing one output does not change another.</p>
     </article>`;
 }
 
 function renderSavedRun(data) {
-  otpValue.textContent = data.otp || "------";
+  seedValue.textContent = data.seed || "Seed unavailable";
   savePanel.innerHTML = `
     <dl class="save-table">
       <div><dt>Run ID</dt><dd>${escapeHtml(data.runId)}</dd></div>
@@ -403,14 +400,20 @@ function renderSavedRun(data) {
 }
 
 function renderResult(data) {
+  currentRun = data;
+  outputChoices.querySelectorAll("button").forEach((item) => item.disabled = !data.seed);
   renderSources(data.sources);
   renderHealth(data.sources, data.thresholds);
   renderTransformation(data.transformation);
   renderSavedRun(data);
   setStatus(data.status, data.status);
-  ["source_collection", "source_analysis", "health_gate", "fusion", "conditioning", "otp_generation", "experiment_save"].forEach(reveal);
-  const focus = new URLSearchParams(window.location.search).get("focus");
+  ["source_collection", "source_analysis", "health_gate", "fusion", "conditioning", "seed_generation", "experiment_save"].forEach(reveal);
+  const parameters = new URLSearchParams(window.location.search);
+  const focus = parameters.get("focus");
   if (focus) document.body.classList.add(`focus-${focus}`);
+  const requestedOutput = parameters.get("output");
+  const outputButton = outputChoices.querySelector(`[data-output-kind="${requestedOutput}"]`);
+  if (outputButton) window.setTimeout(() => outputButton.click(), 100);
 }
 
 function resetReport() {
@@ -422,8 +425,102 @@ function resetReport() {
   sourceGrid.innerHTML = `<p class="empty-copy">Collecting source evidence…</p>`;
   healthGrid.innerHTML = `<p class="empty-copy">Waiting for feature extraction and health checks…</p>`;
   transformationReport.innerHTML = `<p class="empty-copy">Waiting for accepted source hashes…</p>`;
-  otpValue.textContent = "------";
+  currentRun = null;
+  outputChoices.querySelectorAll("button").forEach((item) => item.disabled = true);
+  seedValue.textContent = "Waiting for seed creation";
+  outputResult.innerHTML = "<p>Select an output after the seed is ready.</p>";
   savePanel.innerHTML = "<p>Experiment paths appear after the report is saved.</p>";
+}
+
+function renderOtpOutput(payload, artifact) {
+  return `<article class="selected-output otp-output">
+    <div><p class="section-label">Selected output / OTP</p><h3>${escapeHtml(payload.otp)}</h3>
+      <p>The OTP is generated only after selection. Rejection sampling avoids simple modulo bias.</p></div>
+    <div>
+      ${rejectionDiagram(payload.rejection)}
+      <div class="rejection-equation">
+        <span>Candidate <strong>${escapeHtml(payload.rejection.candidate)}</strong></span>
+        <span>&lt; acceptance limit <strong>${escapeHtml(payload.rejection.limit)}</strong></span>
+        <span>accepted after <strong>${escapeHtml(payload.rejection.inspected)}</strong> inspected chunk(s)</span>
+        <span>uniform value <strong>${escapeHtml(payload.rejection.value)}</strong></span>
+      </div>
+    </div>
+    <a class="artifact-link" href="${escapeHtml(artifact)}">Open saved OTP JSON</a>
+  </article>`;
+}
+
+function renderMapOutput(payload, artifact) {
+  const colors = Object.fromEntries(payload.palette.map((item) => [item.index, item.color]));
+  const cells = payload.cells.flat().map((cell) => `<i style="background:${escapeHtml(colors[cell])}"></i>`).join("");
+  const legend = payload.palette.map((item) => `<span><i style="background:${escapeHtml(item.color)}"></i>${escapeHtml(item.label)}</span>`).join("");
+  return `<article class="selected-output">
+    <div><p class="section-label">Selected output / Map</p><h3>Five-color terrain map</h3>
+      <p>A deterministic ${payload.width} by ${payload.height} terrain field derived from the saved seed.</p></div>
+    <div class="terrain-map" style="--map-columns:${payload.width}" role="img" aria-label="Generated terrain map">${cells}</div>
+    <div class="terrain-legend">${legend}</div>
+    <a class="artifact-link" href="${escapeHtml(artifact)}">Open saved map JSON</a>
+  </article>`;
+}
+
+function mazeSvg(payload) {
+  const cellSize = 20;
+  const width = payload.width * cellSize;
+  const height = payload.height * cellSize;
+  const { north, east, south, west } = payload.wallBits;
+  const paths = [];
+  payload.cells.forEach((row, rowIndex) => row.forEach((walls, columnIndex) => {
+    const x = columnIndex * cellSize;
+    const y = rowIndex * cellSize;
+    if (walls & north) paths.push(`M${x} ${y}H${x + cellSize}`);
+    if (walls & west) paths.push(`M${x} ${y}V${y + cellSize}`);
+    if (columnIndex === payload.width - 1 && walls & east) paths.push(`M${x + cellSize} ${y}V${y + cellSize}`);
+    if (rowIndex === payload.height - 1 && walls & south) paths.push(`M${x} ${y + cellSize}H${x + cellSize}`);
+  }));
+  return `<svg class="maze-map" viewBox="0 0 ${width} ${height}" role="img" aria-label="Generated 30 by 30 maze with closed outer boundary">
+    <rect class="maze-start" x="3" y="3" width="${cellSize - 6}" height="${cellSize - 6}" />
+    <rect class="maze-end" x="${width - cellSize + 3}" y="${height - cellSize + 3}" width="${cellSize - 6}" height="${cellSize - 6}" />
+    <path d="${paths.join("")}" />
+  </svg>`;
+}
+
+function renderMazeOutput(payload, artifact) {
+  return `<article class="selected-output">
+    <div><p class="section-label">Selected output / Maze</p><h3>Fixed 30 × 30 perfect maze</h3>
+      <p>The outside boundary remains closed. Red marks the start cell and green marks the end cell.</p></div>
+    ${mazeSvg(payload)}
+    <a class="artifact-link" href="${escapeHtml(artifact)}">Open saved maze JSON</a>
+  </article>`;
+}
+
+async function requestOutput(kind, button) {
+  if (!currentRun?.seed) return;
+  outputChoices.querySelectorAll("button").forEach((item) => item.disabled = true);
+  button.textContent = `Generating ${kind}`;
+  outputResult.innerHTML = `<p class="empty-copy">Deriving the ${escapeHtml(kind)} child seed and generating output…</p>`;
+  try {
+    const response = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind,
+        seed: currentRun.seed,
+        experimentId: currentRun.experimentId,
+        runId: currentRun.runId,
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.error || "generation failed");
+    outputResult.innerHTML = kind === "otp"
+      ? renderOtpOutput(result.output, result.artifact)
+      : kind === "map"
+        ? renderMapOutput(result.output, result.artifact)
+        : renderMazeOutput(result.output, result.artifact);
+  } catch (error) {
+    outputResult.innerHTML = `<div class="missing-evidence"><p class="section-label">Output generation failed</p><p>${escapeHtml(error.message)}</p></div>`;
+  } finally {
+    outputChoices.querySelectorAll("button").forEach((item) => item.disabled = false);
+    button.textContent = `Generate ${kind.toUpperCase()}`;
+  }
 }
 
 function runFlow() {
@@ -477,6 +574,11 @@ async function playAudio(url, rate) {
 }
 
 document.addEventListener("click", (event) => {
+  const outputControl = event.target.closest("[data-output-kind]");
+  if (outputControl) {
+    requestOutput(outputControl.dataset.outputKind, outputControl);
+    return;
+  }
   const control = event.target.closest("[data-audio-action]");
   if (!control) return;
   if (control.dataset.audioAction === "stop" && activeAudioSource) {

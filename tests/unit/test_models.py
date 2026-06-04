@@ -22,8 +22,8 @@ from randomiser.core.hashing import blake2b_digest, sha512_digest
 from randomiser.core.models import (
     ExperimentManifest,
     HealthResult,
-    OtpRunResult,
     PipelineTraceStep,
+    SeedRunResult,
     SourceFeatures,
     SourceSample,
 )
@@ -78,10 +78,10 @@ def test_health_trace_result_and_manifest_models_have_stable_defaults() -> None:
         output_ref="trace/source_collection.json",
         metrics={"byte_count": 128},
     )
-    result = OtpRunResult(
+    result = SeedRunResult(
         run_id="run_000001",
         mode=RunMode.BATCH,
-        otp="012345",
+        seed_hex="ab" * 64,
         status=RunStatus.OK,
         source_files={"camera": "input/camera/run_000001.bin"},
         health={"camera": health},
@@ -97,7 +97,7 @@ def test_health_trace_result_and_manifest_models_have_stable_defaults() -> None:
         source_names=[SourceName.CAMERA, SourceName.CPU_JITTER],
     )
 
-    assert result.otp == "012345"
+    assert result.seed_hex == "ab" * 64
     assert result.trace[0].name == "source_collection"
     assert manifest.source_names == [SourceName.CAMERA, SourceName.CPU_JITTER]
     assert asdict(manifest)["config_name"] == "batch_run.yaml"

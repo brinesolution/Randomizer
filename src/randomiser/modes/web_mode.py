@@ -7,7 +7,7 @@ from typing import Any
 
 from randomiser.core.constants import DEFAULT_MIN_HEALTHY_SOURCES
 from randomiser.core.enums import RunMode
-from randomiser.core.models import ExperimentManifest, OtpRunResult
+from randomiser.core.models import ExperimentManifest, SeedRunResult
 from randomiser.io.experiment_store import create_experiment_structure
 from randomiser.io.manifest_writer import write_manifest
 from randomiser.io.run_logger import log_run
@@ -24,7 +24,7 @@ def run_web_once(
     config_name: str = "web_mode",
     min_required_sources: int = DEFAULT_MIN_HEALTHY_SOURCES,
     config: dict[str, Any] | None = None,
-) -> OtpRunResult:
+) -> SeedRunResult:
     source_list = list(sources)
     experiment_dir = create_experiment_structure(
         experiments_root,

@@ -76,4 +76,4 @@ def test_transformation_visual_matches_pipeline_otp() -> None:
     assert visual["sourceHashes"][1]["rawPreview"] == [5, 6, 7, 8]
     assert len(visual["fusedDigest"]) == 128
     assert len(visual["conditionedDigest"]) == 128
-    assert visual["otp"] == f"{visual['rejection']['value']:06d}"
+    assert visual["seedHex"] == visual["conditionedDigest"]

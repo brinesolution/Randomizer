@@ -1,13 +1,16 @@
-OTP generation starts only after source health gating.
+# OTP Generation
 
-Current flow:
+OTP generation is an optional output selected after the master seed is saved.
+It is no longer part of the source entropy pipeline.
 
-1. Accepted source bytes are independently hashed.
-2. Source hashes are fused in stable source-name order.
-3. Fused bytes are conditioned with SHA-512.
-4. The conditioned digest is converted to an integer with rejection sampling.
-5. The integer is formatted as exactly six digits.
+Flow:
 
-Rejection sampling avoids the simple modulo shortcut. A 32-bit chunk is accepted only when it falls below the largest multiple of the target range that fits inside `2**32`. If a chunk is rejected, the next chunk is tried. If all chunks are exhausted, the digest is rehashed with a counter.
+1. Derive an OTP-specific child seed from the master seed.
+2. Read 32-bit candidates from the child seed.
+3. Accept only candidates below the largest evenly divisible limit.
+4. Reduce the accepted candidate into the six-digit range.
+5. Format the value with leading zeros preserved.
 
-Formatting preserves leading zeros, so value `42` becomes `000042`.
+The domain-separated child seed prevents OTP generation from changing map or
+maze output. Rejection sampling avoids the bias caused by applying simple
+modulo to every 32-bit candidate.

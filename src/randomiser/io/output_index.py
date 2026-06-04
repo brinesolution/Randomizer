@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from randomiser.core.enums import SourceName
-from randomiser.core.models import OtpRunResult
+from randomiser.core.models import SeedRunResult
 from randomiser.io.artifact_namer import output_index_relative_path
 from randomiser.io.csv_writer import append_csv_row
 
@@ -14,7 +14,7 @@ RUN_INDEX_COLUMNS = [
     "microphone_input_file",
     "cpu_jitter_input_file",
     "scheduler_jitter_input_file",
-    "otp",
+    "seed_hex",
     "status",
     "created_at",
 ]
@@ -27,7 +27,7 @@ SOURCE_COLUMNS = {
 }
 
 
-def output_row(result: OtpRunResult) -> dict[str, str]:
+def output_row(result: SeedRunResult) -> dict[str, str]:
     row = {
         "run_id": result.run_id,
         "mode": result.mode.value,
@@ -35,7 +35,7 @@ def output_row(result: OtpRunResult) -> dict[str, str]:
         "microphone_input_file": "",
         "cpu_jitter_input_file": "",
         "scheduler_jitter_input_file": "",
-        "otp": result.otp,
+        "seed_hex": result.seed_hex,
         "status": result.status.value,
         "created_at": result.created_at.isoformat() if result.created_at else "",
     }
@@ -46,7 +46,7 @@ def output_row(result: OtpRunResult) -> dict[str, str]:
     return row
 
 
-def append_output_row(experiment_dir: str | Path, result: OtpRunResult) -> Path:
+def append_output_row(experiment_dir: str | Path, result: SeedRunResult) -> Path:
     output_path = Path(experiment_dir) / output_index_relative_path()
     append_csv_row(output_path, RUN_INDEX_COLUMNS, output_row(result))
     return output_path

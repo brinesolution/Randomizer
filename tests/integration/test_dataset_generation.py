@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 
 from randomiser.core.enums import RunMode, RunStatus, SourceName
-from randomiser.core.models import ExperimentManifest, OtpRunResult
+from randomiser.core.models import ExperimentManifest, SeedRunResult
 from randomiser.io.experiment_store import create_experiment_structure
 from randomiser.io.manifest_writer import write_manifest
 from randomiser.io.run_logger import log_run
@@ -30,10 +30,10 @@ def test_fake_run_writes_structured_experiment_dataset(
     )
     write_manifest(experiment_dir, manifest)
 
-    result = OtpRunResult(
+    result = SeedRunResult(
         run_id="run_000001",
         mode=RunMode.BATCH,
-        otp="123456",
+        seed_hex="ab" * 64,
         status=RunStatus.OK,
         created_at=datetime(2026, 6, 4, 8, 32, tzinfo=timezone.utc),
     )
@@ -53,7 +53,7 @@ def test_fake_run_writes_structured_experiment_dataset(
 
     assert len(rows) == 1
     assert rows[0]["run_id"] == "run_000001"
-    assert rows[0]["otp"] == "123456"
+    assert rows[0]["seed_hex"] == "ab" * 64
     assert rows[0]["camera_input_file"] == "input/camera/run_000001.bin"
     assert rows[0]["microphone_input_file"] == "input/microphone/run_000001.bin"
     assert rows[0]["cpu_jitter_input_file"] == "input/cpu_jitter/run_000001.bin"

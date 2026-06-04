@@ -1,15 +1,31 @@
-The codebase uses a `src/` layout and keeps each responsibility in a small package.
+# Architecture
 
-Core modules:
+Randomiser uses a `src/` layout and separates seed creation from output
+generation.
 
-- `randomiser.core`: enums, dataclasses, config loading, paths, timing, hashing, and shared exceptions.
-- `randomiser.sources`: laptop source collectors and the source registry.
-- `randomiser.integrations`: low-level camera and microphone adapters.
-- `randomiser.pipeline`: feature extraction, health checks, source fusion, conditioning, OTP generation, and orchestration.
-- `randomiser.io`: experiment folder creation, source input saving, manifest writing, and output CSV writing.
-- `randomiser.modes`: batch and web backend mode functions.
-- `randomiser.cli`: terminal commands and script entrypoints.
+Core packages:
 
-Batch mode calls the same pipeline functions that web mode will call. CLI and web code should not duplicate feature extraction, health logic, fusion, conditioning, or storage logic.
+- `randomiser.core`: enums, dataclasses, configuration, paths, timing, hashing,
+  and shared exceptions.
+- `randomiser.sources`: laptop source collectors and registry.
+- `randomiser.integrations`: camera and microphone hardware adapters.
+- `randomiser.pipeline`: feature extraction, health gating, source fusion,
+  conditioning, and reusable master-seed creation.
+- `randomiser.generators`: domain-separated OTP, map, and maze generators.
+- `randomiser.io`: source input, seed index, manifest, and generated-output
+  storage.
+- `randomiser.modes`: batch and web backend workflows.
+- `randomiser.trace`: display-ready source and seed-creation visual data.
+- `randomiser.cli`: terminal commands and script entry points.
 
-The storage boundary is `randomiser.io`. Raw source bytes are written through IO helpers so every run keeps source inputs and OTP output tied to the same `run_id`.
+The central boundary is:
+
+```text
+EntropyManager -> SeedRunResult -> selected output generator
+```
+
+`EntropyManager` never generates an OTP, map, or maze. It stops after final
+conditioning and returns a 512-bit seed. Output generators derive isolated
+child seeds and can run repeatedly without recollecting sources.
+
+Both batch and web mode use the same pipeline and storage contracts.
